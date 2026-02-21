@@ -53,7 +53,7 @@ export default function HomePage() {
               <div className="text-gray-600">Expert Faculty</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-blue-600 mb-2">10+</div>
+              <div className="text-4xl font-bold text-blue-600 mb-2">25+</div>
               <div className="text-gray-600">Years Experience</div>
             </div>
             <div className="text-center">
