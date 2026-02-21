@@ -184,14 +184,38 @@ const gradesData = [
 ]
 
 const teachersData: Teacher[] = [
-  { id: 1, name: 'Sarthak Sir', subject: 'Mathematics', avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150', messages: [
-    { from: 'teacher', text: 'Hello! How can I help you with mathematics today?', time: '10:00 AM' },
-  ]},
-  { id: 2, name: 'Dr. Rajesh Kumar', subject: 'Science', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', messages: [
-    { from: 'teacher', text: 'Your physics lab report was excellent!', time: 'Yesterday' },
-  ]},
-  { id: 3, name: 'Ms. Priya Singh', subject: 'English', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', messages: [] },
-  { id: 4, name: 'Mr. Amit Verma', subject: 'Social Science', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', messages: [] },
+  {
+    id: 1,
+    name: 'Sarthak Sir',
+    subject: 'Mathematics',
+    avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150',
+    messages: [
+      { id: 1, from: 'teacher', text: 'Hello! How can I help you with mathematics today?', time: '10:00 AM' },
+    ],
+  },
+  {
+    id: 2,
+    name: 'Dr. Rajesh Kumar',
+    subject: 'Science',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
+    messages: [
+      { id: 1, from: 'teacher', text: 'Your physics lab report was excellent!', time: 'Yesterday' },
+    ],
+  },
+  {
+    id: 3,
+    name: 'Ms. Priya Singh',
+    subject: 'English',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+    messages: [],
+  },
+  {
+    id: 4,
+    name: 'Mr. Amit Verma',
+    subject: 'Social Science',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+    messages: [],
+  },
 ]
 
 const announcements = [
@@ -245,18 +269,39 @@ export default function StudentDashboard() {
 
   const sendChatMessage = () => {
     if (!chatMessage.trim()) return
-    setChatHistory(chatHistory.map(t => 
-      t.id === activeChat 
-        ? { ...t, messages: [...t.messages, { from: 'student' as const, text: chatMessage, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }] }
-        : t
-    ))
-    setChatMessage('')
-    setTimeout(() => {
-      setChatHistory(chatHistory.map(t => 
-        t.id === activeChat 
-          ? { ...t, messages: [...t.messages, { from: 'teacher' as const, text: 'Thank you for your message. I will get back to you soon!', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }] }
+  
+    const studentMsg: ChatMessage = {
+      id: Date.now(),
+      from: 'student',
+      text: chatMessage,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    }
+  
+    setChatHistory(prev =>
+      prev.map(t =>
+        t.id === activeChat
+          ? { ...t, messages: [...t.messages, studentMsg] }
           : t
-      ))
+      )
+    )
+  
+    setChatMessage('')
+  
+    setTimeout(() => {
+      const teacherMsg: ChatMessage = {
+        id: Date.now() + 1,
+        from: 'teacher',
+        text: 'Thank you for your message. I will get back to you soon!',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }
+  
+      setChatHistory(prev =>
+        prev.map(t =>
+          t.id === activeChat
+            ? { ...t, messages: [...t.messages, teacherMsg] }
+            : t
+        )
+      )
     }, 1000)
   }
 
