@@ -281,11 +281,31 @@ export default function ContactPage() {
 
               {/* Map placeholder */}
               <div className="bg-white rounded-xl shadow-lg p-8">
-                <h2 className="text-2xl font-bold mb-4">Find Us</h2>
-                <div className="bg-gray-200 rounded-lg h-64 flex items-center justify-center">
-                  <p className="text-gray-500">Map will be displayed here</p>
-                </div>
-              </div>
+  <h2 className="text-2xl font-bold mb-4">Find Us</h2>
+
+  {/* Google Map Embed */}
+  <div className="rounded-lg overflow-hidden h-64 mb-4">
+    <iframe
+      src="https://www.google.com/maps?q=Sarthak+Group+Tuition,+12,Janakpuri+Society,Nigam,Smruti+Mandir+Rd,Ghodasar,Ahmedabad,Gujarat+380050&output=embed"
+      width="100%"
+      height="100%"
+      style={{ border: 0 }}
+      allowFullScreen
+      loading="lazy"
+      referrerPolicy="no-referrer-when-downgrade"
+    ></iframe>
+  </div>
+
+  {/* Directions Button */}
+  <a
+    href="https://www.google.com/maps/dir//Sarthak+Group+Tuition,+12,Janakpuri+Society,Nigam,+Smruti+Mandir+Rd,+Ghodasar,+Ahmedabad,+Gujarat+380050,+India"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition duration-300"
+  >
+    Get Directions
+  </a>
+</div>
             </div>
           </div>
         </div>
