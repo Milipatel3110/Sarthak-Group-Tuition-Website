@@ -103,10 +103,28 @@ const coursesData: Course[] = [
 const assignmentsData: Assignment[] = [
   { id: 1, title: 'Algebra Chapter 5 Exercise', subject: 'Mathematics', dueDate: '2024-01-15', status: 'pending', marks: 10, description: 'Solve all questions from Exercise 5.1 to 5.5 - Quadratic Equations' },
   { id: 2, title: 'Physics Lab Report', subject: 'Science', dueDate: '2024-01-12', status: 'submitted', marks: 20, description: 'Write lab report for Light experiment - reflection and refraction', file: undefined },
-  { id: 3, title: 'Essay Writing', subject: 'English', dueDate: '2024-01-10', status: 'graded', marks: 15, score: 13, feedback: 'Good effort! Work on grammar and punctuation.' },
-  { id: 4, title: 'Map Work', subject: 'Social Science', dueDate: '2024-01-18', status: 'pending', marks: 5, description: 'Mark important places on India map - Freedom Struggle' },
-  { id: 5, title: 'Chemistry Numericals', subject: 'Science', dueDate: '2024-01-08', status: 'graded', marks: 20, score: 18, feedback: 'Excellent work! Keep it up.' },
-]
+  {
+    id: 3,
+    title: "Essay Writing",
+    subject: "English",
+    dueDate: "2024-01-10",
+    status: "graded",
+    marks: 15,
+    score: 13,
+    feedback: "Good effort! Work on grammar and punctuation.",
+    description: "Write an essay on the given topic with proper grammar, structure, and examples."
+  },
+  {
+    id: 5,
+    title: "Chemistry Numericals",
+    subject: "Science",
+    dueDate: "2024-01-08",
+    status: "graded",
+    marks: 20,
+    score: 18,
+    feedback: "Excellent work! Keep it up.",
+    description: "Solve the assigned numericals from the chapter and show all steps clearly."
+  },]
 
 const studyMaterials = [
   { id: 1, title: 'Mathematics Formula Sheet', type: 'PDF', subject: 'Mathematics', size: '2.5 MB', downloads: 45, date: '2024-01-10', url: '#' },
