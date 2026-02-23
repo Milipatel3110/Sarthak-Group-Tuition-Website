@@ -22,6 +22,7 @@ interface User {
     parentId?: string | null
   } | null
   parentProfile?: {
+    id?: string
     occupation?: string | null
   } | null
   facultyProfile?: {
