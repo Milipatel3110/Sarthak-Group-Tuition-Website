@@ -33,7 +33,21 @@ interface User {
   } | null
 }
 
-function UserModal({ isOpen, onClose, user, role, onSave }: { isOpen: boolean; onClose: () => void; user?: User | null; role: UserRole; onSave: (data: any) => void }) {
+function UserModal({
+  isOpen,
+  onClose,
+  user,
+  role,
+  parentOptions,
+  onSave,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  user?: User | null
+  role: UserRole
+  parentOptions: User[]
+  onSave: (data: any) => void
+}) {
   const emptyForm = {
     email: '', password: '', firstName: '', lastName: '', phone: '',
     class: '', schoolName: '', dateOfBirth: '', occupation: '',
@@ -64,6 +78,7 @@ function UserModal({ isOpen, onClose, user, role, onSave }: { isOpen: boolean; o
         class: user.studentProfile?.class || '',
         schoolName: user.studentProfile?.schoolName || '',
         dateOfBirth: user.studentProfile?.dateOfBirth ? String(user.studentProfile.dateOfBirth).split('T')[0] : '',
+        parentId: user.studentProfile?.parentId || '',
         occupation: user.parentProfile?.occupation || '',
         qualification: user.facultyProfile?.qualification || '',
         subjects: facultySubjects,
@@ -93,7 +108,7 @@ function UserModal({ isOpen, onClose, user, role, onSave }: { isOpen: boolean; o
           {!user && <div><label className="block text-sm font-medium mb-1">Password</label><input type="password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>}
           <div><label className="block text-sm font-medium mb-1">Phone</label><input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
           {role === 'STUDENT' && (
-            <><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium mb-1">Class</label><select value={formData.class} onChange={e => setFormData({...formData, class: e.target.value})} className="w-full px-3 py-2 border rounded-lg"><option value="">Select</option><option value="Class 6">Class 6</option><option value="Class 7">Class 7</option><option value="Class 8">Class 8</option><option value="Class 9">Class 9</option><option value="Class 10">Class 10</option><option value="Class 11">Class 11</option><option value="Class 12">Class 12</option></select></div><div><label className="block text-sm font-medium mb-1">DOB</label><input type="date" value={formData.dateOfBirth} onChange={e => setFormData({...formData, dateOfBirth: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div></div><div><label className="block text-sm font-medium mb-1">School</label><input type="text" value={formData.schoolName} onChange={e => setFormData({...formData, schoolName: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div></>
+            <><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium mb-1">Class</label><select value={formData.class} onChange={e => setFormData({...formData, class: e.target.value})} className="w-full px-3 py-2 border rounded-lg"><option value="">Select</option><option value="Class 6">Class 6</option><option value="Class 7">Class 7</option><option value="Class 8">Class 8</option><option value="Class 9">Class 9</option><option value="Class 10">Class 10</option><option value="Class 11">Class 11</option><option value="Class 12">Class 12</option></select></div><div><label className="block text-sm font-medium mb-1">DOB</label><input type="date" value={formData.dateOfBirth} onChange={e => setFormData({...formData, dateOfBirth: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div></div><div><label className="block text-sm font-medium mb-1">School</label><input type="text" value={formData.schoolName} onChange={e => setFormData({...formData, schoolName: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Linked Parent</label><select value={formData.parentId} onChange={e => setFormData({ ...formData, parentId: e.target.value })} className="w-full px-3 py-2 border rounded-lg"><option value="">Not linked</option>{parentOptions.map((parent) => (<option key={parent.id} value={parent.parentProfile?.id || ''}>{parent.firstName} {parent.lastName} ({parent.email})</option>))}</select></div></>
           )}
           {role === 'PARENT' && <div><label className="block text-sm font-medium mb-1">Occupation</label><input type="text" value={formData.occupation} onChange={e => setFormData({...formData, occupation: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>}
           {role === 'FACULTY' && (
@@ -109,6 +124,7 @@ function UserModal({ isOpen, onClose, user, role, onSave }: { isOpen: boolean; o
 export default function AdminUsersPage() {
   const [activeTab, setActiveTab] = useState<UserRole>('STUDENT')
   const [users, setUsers] = useState<User[]>([])
+  const [parentOptions, setParentOptions] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -122,6 +138,13 @@ export default function AdminUsersPage() {
       const res = await fetch(`/api/auth/register?role=${activeTab}`)
       const data = await res.json()
       if (data.users) setUsers(data.users)
+      if (activeTab === 'STUDENT') {
+        const parentsRes = await fetch('/api/auth/register?role=PARENT&isActive=true')
+        const parentsData = await parentsRes.json()
+        setParentOptions(parentsData.users || [])
+      } else {
+        setParentOptions([])
+      }
     } catch (err) { console.error(err) }
     setLoading(false)
   }
@@ -210,7 +233,7 @@ export default function AdminUsersPage() {
           </table>
         </div>
       </div>
-      <UserModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} user={editingUser} role={activeTab} onSave={handleSave} />
+      <UserModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} user={editingUser} role={activeTab} parentOptions={parentOptions} onSave={handleSave} />
     </div>
   )
 }
