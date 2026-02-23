@@ -50,7 +50,7 @@ function UserModal({
 }) {
   const emptyForm = {
     email: '', password: '', firstName: '', lastName: '', phone: '',
-    class: '', schoolName: '', dateOfBirth: '', occupation: '',
+    class: '', schoolName: '', dateOfBirth: '', parentId: '', occupation: '',
     qualification: '', subjects: '', experienceYears: 0, bio: '',
   }
   const [formData, setFormData] = useState(emptyForm)
