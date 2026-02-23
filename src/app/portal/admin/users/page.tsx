@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { GraduationCap, Users, User, Plus, Search, Edit, Trash2, X, CheckCircle, XCircle, ArrowLeft } from 'lucide-react'
+import { GraduationCap, Users, User, Plus, Search, Edit, Trash2, X, ArrowLeft } from 'lucide-react'
 
 type UserRole = 'STUDENT' | 'PARENT' | 'FACULTY'
 
@@ -15,20 +15,81 @@ interface User {
   phone: string | null
   isActive: boolean
   createdAt: string
+  studentProfile?: {
+    class?: string
+    schoolName?: string | null
+    dateOfBirth?: string | null
+    parentId?: string | null
+  } | null
+  parentProfile?: {
+    id?: string
+    occupation?: string | null
+  } | null
+  facultyProfile?: {
+    qualification?: string
+    subjects?: string
+    experienceYears?: number
+    bio?: string | null
+    isOwner?: boolean
+  } | null
 }
 
-function UserModal({ isOpen, onClose, user, role, onSave }: { isOpen: boolean; onClose: () => void; user?: User | null; role: UserRole; onSave: (data: any) => void }) {
-  const [formData, setFormData] = useState({
+function UserModal({
+  isOpen,
+  onClose,
+  user,
+  role,
+  parentOptions,
+  onSave,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  user?: User | null
+  role: UserRole
+  parentOptions: User[]
+  onSave: (data: any) => void
+}) {
+  const emptyForm = {
     email: '', password: '', firstName: '', lastName: '', phone: '',
-    class: '', schoolName: '', dateOfBirth: '', occupation: '',
+    class: '', schoolName: '', dateOfBirth: '', parentId: '', occupation: '',
     qualification: '', subjects: '', experienceYears: 0, bio: '',
-  })
+  }
+  const [formData, setFormData] = useState(emptyForm)
 
   useEffect(() => {
-    if (user) {
-      setFormData({ ...formData, email: user.email, firstName: user.firstName, lastName: user.lastName, phone: user.phone || '' })
+    if (!isOpen) return
+
+    let facultySubjects = ''
+    if (user?.facultyProfile?.subjects) {
+      try {
+        const parsed = JSON.parse(user.facultyProfile.subjects)
+        facultySubjects = Array.isArray(parsed) ? parsed.join(', ') : String(user.facultyProfile.subjects)
+      } catch {
+        facultySubjects = String(user.facultyProfile.subjects)
+      }
     }
-  }, [user])
+
+    if (user) {
+      setFormData({
+        email: user.email,
+        password: '',
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone || '',
+        class: user.studentProfile?.class || '',
+        schoolName: user.studentProfile?.schoolName || '',
+        dateOfBirth: user.studentProfile?.dateOfBirth ? String(user.studentProfile.dateOfBirth).split('T')[0] : '',
+        parentId: user.studentProfile?.parentId || '',
+        occupation: user.parentProfile?.occupation || '',
+        qualification: user.facultyProfile?.qualification || '',
+        subjects: facultySubjects,
+        experienceYears: user.facultyProfile?.experienceYears || 0,
+        bio: user.facultyProfile?.bio || '',
+      })
+    } else {
+      setFormData(emptyForm)
+    }
+  }, [isOpen, user, role])
 
   if (!isOpen) return null
 
@@ -48,7 +109,7 @@ function UserModal({ isOpen, onClose, user, role, onSave }: { isOpen: boolean; o
           {!user && <div><label className="block text-sm font-medium mb-1">Password</label><input type="password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>}
           <div><label className="block text-sm font-medium mb-1">Phone</label><input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
           {role === 'STUDENT' && (
-            <><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium mb-1">Class</label><select value={formData.class} onChange={e => setFormData({...formData, class: e.target.value})} className="w-full px-3 py-2 border rounded-lg"><option value="">Select</option><option value="Class 6">Class 6</option><option value="Class 7">Class 7</option><option value="Class 8">Class 8</option><option value="Class 9">Class 9</option><option value="Class 10">Class 10</option><option value="Class 11">Class 11</option><option value="Class 12">Class 12</option></select></div><div><label className="block text-sm font-medium mb-1">DOB</label><input type="date" value={formData.dateOfBirth} onChange={e => setFormData({...formData, dateOfBirth: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div></div><div><label className="block text-sm font-medium mb-1">School</label><input type="text" value={formData.schoolName} onChange={e => setFormData({...formData, schoolName: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div></>
+            <><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium mb-1">Class</label><select value={formData.class} onChange={e => setFormData({...formData, class: e.target.value})} className="w-full px-3 py-2 border rounded-lg"><option value="">Select</option><option value="Class 6">Class 6</option><option value="Class 7">Class 7</option><option value="Class 8">Class 8</option><option value="Class 9">Class 9</option><option value="Class 10">Class 10</option><option value="Class 11">Class 11</option><option value="Class 12">Class 12</option></select></div><div><label className="block text-sm font-medium mb-1">DOB</label><input type="date" value={formData.dateOfBirth} onChange={e => setFormData({...formData, dateOfBirth: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div></div><div><label className="block text-sm font-medium mb-1">School</label><input type="text" value={formData.schoolName} onChange={e => setFormData({...formData, schoolName: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Linked Parent</label><select value={formData.parentId} onChange={e => setFormData({ ...formData, parentId: e.target.value })} className="w-full px-3 py-2 border rounded-lg"><option value="">Not linked</option>{parentOptions.map((parent) => (<option key={parent.id} value={parent.parentProfile?.id || ''}>{parent.firstName} {parent.lastName} ({parent.email})</option>))}</select></div></>
           )}
           {role === 'PARENT' && <div><label className="block text-sm font-medium mb-1">Occupation</label><input type="text" value={formData.occupation} onChange={e => setFormData({...formData, occupation: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>}
           {role === 'FACULTY' && (
@@ -64,6 +125,7 @@ function UserModal({ isOpen, onClose, user, role, onSave }: { isOpen: boolean; o
 export default function AdminUsersPage() {
   const [activeTab, setActiveTab] = useState<UserRole>('STUDENT')
   const [users, setUsers] = useState<User[]>([])
+  const [parentOptions, setParentOptions] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -77,6 +139,13 @@ export default function AdminUsersPage() {
       const res = await fetch(`/api/auth/register?role=${activeTab}`)
       const data = await res.json()
       if (data.users) setUsers(data.users)
+      if (activeTab === 'STUDENT') {
+        const parentsRes = await fetch('/api/auth/register?role=PARENT&isActive=true')
+        const parentsData = await parentsRes.json()
+        setParentOptions(parentsData.users || [])
+      } else {
+        setParentOptions([])
+      }
     } catch (err) { console.error(err) }
     setLoading(false)
   }
@@ -85,11 +154,37 @@ export default function AdminUsersPage() {
     try {
       const subjects = formData.subjects ? formData.subjects.split(',').map((s: string) => s.trim()) : []
       const payload = { ...formData, role: activeTab, subjects, dateOfBirth: formData.dateOfBirth || null }
-      const res = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const isEditing = Boolean(editingUser)
+      const res = await fetch(isEditing ? '/api/auth/register' : '/api/auth/register', {
+        method: isEditing ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(isEditing ? { id: editingUser?.id, ...payload } : payload),
+      })
       const data = await res.json()
-      if (data.success) { alert('User created!'); setIsModalOpen(false); fetchUsers() }
-      else alert(data.error || 'Error')
+      if (data.success) {
+        alert(`User ${isEditing ? 'updated' : 'created'} successfully!`)
+        setIsModalOpen(false)
+        setEditingUser(null)
+        fetchUsers()
+      } else alert(data.error || 'Error')
     } catch (err) { console.error(err); alert('Error saving') }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deactivate this user?')) return
+    try {
+      const res = await fetch(`/api/auth/register?id=${id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(data.error || 'Failed to delete user')
+        return
+      }
+      alert('User deactivated successfully')
+      fetchUsers()
+    } catch (err) {
+      console.error(err)
+      alert('Failed to delete user')
+    }
   }
 
   const filteredUsers = users.filter(u => `${u.firstName} ${u.lastName}`.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()))
@@ -132,14 +227,14 @@ export default function AdminUsersPage() {
                   <td className="px-6 py-4 text-gray-600">{user.phone || '-'}</td>
                   <td className="px-6 py-4"><span className={`text-sm ${user.isActive ? 'text-green-600' : 'text-red-600'}`}>{user.isActive ? 'Active' : 'Inactive'}</span></td>
                   <td className="px-6 py-4 text-gray-600">{new Date(user.createdAt).toLocaleDateString()}</td>
-                  <td className="px-6 py-4"><div className="flex items-center justify-end gap-2"><button onClick={() => { setEditingUser(user); setIsModalOpen(true) }} className="p-2 hover:bg-gray-100 rounded-lg"><Edit className="h-4 w-4 text-gray-600" /></button><button className="p-2 hover:bg-gray-100 rounded-lg"><Trash2 className="h-4 w-4 text-red-600" /></button></div></td>
+                  <td className="px-6 py-4"><div className="flex items-center justify-end gap-2"><button onClick={() => { setEditingUser(user); setIsModalOpen(true) }} className="p-2 hover:bg-gray-100 rounded-lg"><Edit className="h-4 w-4 text-gray-600" /></button><button onClick={() => handleDelete(user.id)} className="p-2 hover:bg-gray-100 rounded-lg"><Trash2 className="h-4 w-4 text-red-600" /></button></div></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
-      <UserModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} user={editingUser} role={activeTab} onSave={handleSave} />
+      <UserModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} user={editingUser} role={activeTab} parentOptions={parentOptions} onSave={handleSave} />
     </div>
   )
 }
