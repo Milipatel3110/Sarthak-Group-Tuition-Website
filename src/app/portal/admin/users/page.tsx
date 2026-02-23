@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { GraduationCap, Users, User, Plus, Search, Edit, Trash2, X, CheckCircle, XCircle, ArrowLeft } from 'lucide-react'
+import { GraduationCap, Users, User, Plus, Search, Edit, Trash2, X, ArrowLeft } from 'lucide-react'
 
 type UserRole = 'STUDENT' | 'PARENT' | 'FACULTY'
 
@@ -15,20 +15,65 @@ interface User {
   phone: string | null
   isActive: boolean
   createdAt: string
+  studentProfile?: {
+    class?: string
+    schoolName?: string | null
+    dateOfBirth?: string | null
+    parentId?: string | null
+  } | null
+  parentProfile?: {
+    occupation?: string | null
+  } | null
+  facultyProfile?: {
+    qualification?: string
+    subjects?: string
+    experienceYears?: number
+    bio?: string | null
+    isOwner?: boolean
+  } | null
 }
 
 function UserModal({ isOpen, onClose, user, role, onSave }: { isOpen: boolean; onClose: () => void; user?: User | null; role: UserRole; onSave: (data: any) => void }) {
-  const [formData, setFormData] = useState({
+  const emptyForm = {
     email: '', password: '', firstName: '', lastName: '', phone: '',
     class: '', schoolName: '', dateOfBirth: '', occupation: '',
     qualification: '', subjects: '', experienceYears: 0, bio: '',
-  })
+  }
+  const [formData, setFormData] = useState(emptyForm)
 
   useEffect(() => {
-    if (user) {
-      setFormData({ ...formData, email: user.email, firstName: user.firstName, lastName: user.lastName, phone: user.phone || '' })
+    if (!isOpen) return
+
+    let facultySubjects = ''
+    if (user?.facultyProfile?.subjects) {
+      try {
+        const parsed = JSON.parse(user.facultyProfile.subjects)
+        facultySubjects = Array.isArray(parsed) ? parsed.join(', ') : String(user.facultyProfile.subjects)
+      } catch {
+        facultySubjects = String(user.facultyProfile.subjects)
+      }
     }
-  }, [user])
+
+    if (user) {
+      setFormData({
+        email: user.email,
+        password: '',
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone || '',
+        class: user.studentProfile?.class || '',
+        schoolName: user.studentProfile?.schoolName || '',
+        dateOfBirth: user.studentProfile?.dateOfBirth ? String(user.studentProfile.dateOfBirth).split('T')[0] : '',
+        occupation: user.parentProfile?.occupation || '',
+        qualification: user.facultyProfile?.qualification || '',
+        subjects: facultySubjects,
+        experienceYears: user.facultyProfile?.experienceYears || 0,
+        bio: user.facultyProfile?.bio || '',
+      })
+    } else {
+      setFormData(emptyForm)
+    }
+  }, [isOpen, user, role])
 
   if (!isOpen) return null
 
@@ -85,11 +130,37 @@ export default function AdminUsersPage() {
     try {
       const subjects = formData.subjects ? formData.subjects.split(',').map((s: string) => s.trim()) : []
       const payload = { ...formData, role: activeTab, subjects, dateOfBirth: formData.dateOfBirth || null }
-      const res = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const isEditing = Boolean(editingUser)
+      const res = await fetch(isEditing ? '/api/auth/register' : '/api/auth/register', {
+        method: isEditing ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(isEditing ? { id: editingUser?.id, ...payload } : payload),
+      })
       const data = await res.json()
-      if (data.success) { alert('User created!'); setIsModalOpen(false); fetchUsers() }
-      else alert(data.error || 'Error')
+      if (data.success) {
+        alert(`User ${isEditing ? 'updated' : 'created'} successfully!`)
+        setIsModalOpen(false)
+        setEditingUser(null)
+        fetchUsers()
+      } else alert(data.error || 'Error')
     } catch (err) { console.error(err); alert('Error saving') }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deactivate this user?')) return
+    try {
+      const res = await fetch(`/api/auth/register?id=${id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(data.error || 'Failed to delete user')
+        return
+      }
+      alert('User deactivated successfully')
+      fetchUsers()
+    } catch (err) {
+      console.error(err)
+      alert('Failed to delete user')
+    }
   }
 
   const filteredUsers = users.filter(u => `${u.firstName} ${u.lastName}`.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()))
@@ -132,7 +203,7 @@ export default function AdminUsersPage() {
                   <td className="px-6 py-4 text-gray-600">{user.phone || '-'}</td>
                   <td className="px-6 py-4"><span className={`text-sm ${user.isActive ? 'text-green-600' : 'text-red-600'}`}>{user.isActive ? 'Active' : 'Inactive'}</span></td>
                   <td className="px-6 py-4 text-gray-600">{new Date(user.createdAt).toLocaleDateString()}</td>
-                  <td className="px-6 py-4"><div className="flex items-center justify-end gap-2"><button onClick={() => { setEditingUser(user); setIsModalOpen(true) }} className="p-2 hover:bg-gray-100 rounded-lg"><Edit className="h-4 w-4 text-gray-600" /></button><button className="p-2 hover:bg-gray-100 rounded-lg"><Trash2 className="h-4 w-4 text-red-600" /></button></div></td>
+                  <td className="px-6 py-4"><div className="flex items-center justify-end gap-2"><button onClick={() => { setEditingUser(user); setIsModalOpen(true) }} className="p-2 hover:bg-gray-100 rounded-lg"><Edit className="h-4 w-4 text-gray-600" /></button><button onClick={() => handleDelete(user.id)} className="p-2 hover:bg-gray-100 rounded-lg"><Trash2 className="h-4 w-4 text-red-600" /></button></div></td>
                 </tr>
               ))}
             </tbody>

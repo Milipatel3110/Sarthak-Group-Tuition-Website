@@ -1,438 +1,600 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { 
-  GraduationCap, 
-  BookOpen, 
-  Calendar, 
-  FileText, 
-  TrendingUp, 
-  MessageSquare,
-  Clock,
-  Bell,
+import { useRouter } from 'next/navigation'
+import {
+  BookOpen,
+  CalendarDays,
+  FileText,
+  GraduationCap,
+  LayoutDashboard,
   LogOut,
-  User,
-  CheckCircle,
-  AlertCircle,
-  Play,
-  Download,
-  ChevronRight,
-  Eye,
-  Wallet
+  Megaphone,
+  ShieldCheck,
+  TrendingUp,
+  UserRound,
 } from 'lucide-react'
 
-// Mock data
-const childInfo = {
-  name: 'Rahul Sharma',
-  class: 'Class 10',
-  section: 'A',
-  rollNumber: '101',
-  enrollmentDate: 'April 2024',
-  photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150'
+type TabKey = 'dashboard' | 'progress' | 'attendance' | 'assignments' | 'schedule' | 'announcements'
+
+interface PortalUser {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  role: string
+  parentProfile?: { id: string } | null
 }
 
-const enrolledCourses = [
-  { id: 1, name: 'Mathematics', teacher: 'Sarthak Sir', progress: 75, color: 'blue' },
-  { id: 2, name: 'Science', teacher: 'Dr. Rajesh Kumar', progress: 60, color: 'green' },
-  { id: 3, name: 'English', teacher: 'Ms. Priya Singh', progress: 80, color: 'purple' },
-  { id: 4, name: 'Social Science', teacher: 'Mr. Amit Verma', progress: 65, color: 'orange' },
-]
-
-const upcomingClasses = [
-  { id: 1, subject: 'Mathematics', time: '09:00 AM - 10:30 AM', teacher: 'Sarthak Sir', room: 'Room 101', status: 'live' },
-  { id: 2, subject: 'Science', time: '11:00 AM - 12:30 PM', teacher: 'Dr. Rajesh Kumar', room: 'Lab 1', status: 'upcoming' },
-  { id: 3, subject: 'English', time: '02:00 PM - 03:30 PM', teacher: 'Ms. Priya Singh', room: 'Room 102', status: 'upcoming' },
-]
-
-const assignments = [
-  { id: 1, title: 'Algebra Chapter 5 Exercise', subject: 'Mathematics', dueDate: '2024-01-15', status: 'pending', marks: 10 },
-  { id: 2, title: 'Physics Lab Report', subject: 'Science', dueDate: '2024-01-12', status: 'submitted', marks: 20 },
-  { id: 3, title: 'Essay Writing', subject: 'English', dueDate: '2024-01-10', status: 'graded', marks: 15, score: 13 },
-]
-
-const announcements = [
-  { id: 1, title: 'Unit Test Schedule', date: '2024-01-08', type: 'exam', priority: 'high' },
-  { id: 2, title: 'Science Exhibition', date: '2024-01-05', type: 'event', priority: 'medium' },
-  { id: 3, title: 'Fee Payment Reminder', date: '2024-01-03', type: 'notice', priority: 'low' },
-]
-
-const feeDetails = {
-  totalFee: 35000,
-  paid: 25000,
-  pending: 10000,
-  dueDate: '2024-02-01',
-  nextInstallment: 10000
+interface ChildUser {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  studentProfile: {
+    id: string
+    class: string
+    parentId: string | null
+  } | null
 }
 
-const attendance = {
-  total: 180,
-  present: 166,
-  absent: 14,
-  percentage: 92
+interface EnrollmentItem {
+  id: string
+  courseId: string
+  status: string
+  course: {
+    id: string
+    name: string
+    targetClass: string
+  }
 }
 
-const recentPerformance = [
-  { exam: 'Unit Test 1', subject: 'Mathematics', marks: 85, total: 100, grade: 'A' },
-  { exam: 'Unit Test 1', subject: 'Science', marks: 78, total: 100, grade: 'B+' },
-  { exam: 'Unit Test 1', subject: 'English', marks: 92, total: 100, grade: 'A+' },
-  { exam: 'Unit Test 1', subject: 'Social Science', marks: 88, total: 100, grade: 'A' },
-]
+interface AssignmentItem {
+  id: string
+  title: string
+  description: string
+  dueDate: string | null
+  maxMarks: number
+  courseId: string
+  course: {
+    name: string
+  }
+}
+
+interface SubmissionItem {
+  id: string
+  assignmentId: string
+  submittedAt: string
+  marks: number | null
+  feedback: string | null
+}
+
+interface GradeItem {
+  id: string
+  examName: string
+  marks: number
+  maxMarks: number
+  grade: string | null
+  remarks: string | null
+  course: {
+    name: string
+  }
+}
+
+interface AttendanceItem {
+  id: string
+  status: string
+  date: string
+}
+
+interface ScheduleItem {
+  id: string
+  dayOfWeek: string
+  startTime: string
+  endTime: string
+  subject: string
+  roomNumber: string | null
+  courseId: string
+  course: {
+    name: string
+  }
+}
+
+interface AnnouncementItem {
+  id: string
+  title: string
+  content: string
+  targetRole: string
+  isPinned: boolean
+  createdAt: string
+}
 
 export default function ParentDashboard() {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState<TabKey>('dashboard')
+  const [user, setUser] = useState<PortalUser | null>(null)
+  const [parentProfileId, setParentProfileId] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'live': return 'bg-red-500'
-      case 'upcoming': return 'bg-blue-500'
-      default: return 'bg-gray-500'
+  const [children, setChildren] = useState<ChildUser[]>([])
+  const [activeChildStudentId, setActiveChildStudentId] = useState('')
+
+  const [enrollments, setEnrollments] = useState<EnrollmentItem[]>([])
+  const [assignments, setAssignments] = useState<AssignmentItem[]>([])
+  const [submissions, setSubmissions] = useState<SubmissionItem[]>([])
+  const [grades, setGrades] = useState<GradeItem[]>([])
+  const [attendance, setAttendance] = useState<AttendanceItem[]>([])
+  const [schedule, setSchedule] = useState<ScheduleItem[]>([])
+  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([])
+
+  useEffect(() => {
+    const rawUser = localStorage.getItem('user')
+    if (!rawUser) {
+      router.push('/portal/login')
+      return
+    }
+
+    const parsedUser = JSON.parse(rawUser) as PortalUser
+    if (!['PARENT', 'ADMIN'].includes(parsedUser.role)) {
+      router.push('/portal/login')
+      return
+    }
+
+    setUser(parsedUser)
+    if (!parsedUser.parentProfile?.id) {
+      setError('No parent profile is linked to this account.')
+      setLoading(false)
+      return
+    }
+    setParentProfileId(parsedUser.parentProfile.id)
+  }, [router])
+
+  const loadChildren = async () => {
+    if (!parentProfileId) return
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/auth/register?role=STUDENT&isActive=true')
+      const data = await res.json()
+      const allStudents: ChildUser[] = (data.users || []).filter(
+        (student: ChildUser) => student.studentProfile?.parentId === parentProfileId
+      )
+      setChildren(allStudents)
+      setActiveChildStudentId((prev) => prev || allStudents[0]?.studentProfile?.id || '')
+    } catch (err) {
+      console.error(err)
+      setError('Failed to load linked children.')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const getAssignmentStatusColor = (status: string) => {
-    switch(status) {
-      case 'pending': return 'text-orange-600 bg-orange-50'
-      case 'submitted': return 'text-blue-600 bg-blue-50'
-      case 'graded': return 'text-green-600 bg-green-50'
-      default: return 'text-gray-600 bg-gray-50'
+  useEffect(() => {
+    void loadChildren()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parentProfileId])
+
+  const refreshChildData = async () => {
+    if (!activeChildStudentId) return
+    setLoading(true)
+    setError('')
+    try {
+      const [
+        enrollmentsRes,
+        assignmentsRes,
+        submissionsRes,
+        gradesRes,
+        attendanceRes,
+        scheduleRes,
+        announcementsRes,
+      ] = await Promise.all([
+        fetch(`/api/course-enrollments?studentId=${activeChildStudentId}&status=ACTIVE`),
+        fetch('/api/assignments'),
+        fetch(`/api/assignment-submissions?studentId=${activeChildStudentId}`),
+        fetch(`/api/grades?studentId=${activeChildStudentId}`),
+        fetch(`/api/attendance?studentId=${activeChildStudentId}`),
+        fetch('/api/schedule'),
+        fetch('/api/announcements?targetRole=parents'),
+      ])
+
+      const enrollmentsData = await enrollmentsRes.json()
+      const assignmentsData = await assignmentsRes.json()
+      const submissionsData = await submissionsRes.json()
+      const gradesData = await gradesRes.json()
+      const attendanceData = await attendanceRes.json()
+      const scheduleData = await scheduleRes.json()
+      const announcementsData = await announcementsRes.json()
+
+      setEnrollments(enrollmentsData.enrollments || [])
+      setAssignments(assignmentsData.assignments || [])
+      setSubmissions(submissionsData.submissions || [])
+      setGrades(gradesData.grades || [])
+      setAttendance(attendanceData.attendance || [])
+      setSchedule(scheduleData.schedule || [])
+      setAnnouncements(announcementsData.announcements || [])
+    } catch (err) {
+      console.error(err)
+      setError('Failed to load child data.')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const getGradeColor = (grade: string) => {
-    if (grade.startsWith('A+') || grade.startsWith('A')) return 'text-green-600 bg-green-50'
-    if (grade.startsWith('B+') || grade.startsWith('B')) return 'text-blue-600 bg-blue-50'
-    return 'text-orange-600 bg-orange-50'
+  useEffect(() => {
+    void refreshChildData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeChildStudentId])
+
+  const enrolledCourseIds = useMemo(() => {
+    return new Set(enrollments.map((enrollment) => enrollment.courseId))
+  }, [enrollments])
+
+  const childAssignments = useMemo(
+    () => assignments.filter((assignment) => enrolledCourseIds.has(assignment.courseId)),
+    [assignments, enrolledCourseIds]
+  )
+
+  const submissionByAssignment = useMemo(() => {
+    const map = new Map<string, SubmissionItem>()
+    submissions.forEach((submission) => map.set(submission.assignmentId, submission))
+    return map
+  }, [submissions])
+
+  const childSchedule = useMemo(
+    () => schedule.filter((entry) => enrolledCourseIds.has(entry.courseId)),
+    [schedule, enrolledCourseIds]
+  )
+
+  const attendanceStats = useMemo(() => {
+    if (!attendance.length) return { percentage: 0, present: 0, absent: 0, total: 0 }
+    const present = attendance.filter((item) => item.status === 'PRESENT').length
+    const absent = attendance.filter((item) => item.status === 'ABSENT').length
+    const total = attendance.length
+    return {
+      percentage: Math.round((present / total) * 100),
+      present,
+      absent,
+      total,
+    }
+  }, [attendance])
+
+  const averageMarks = useMemo(() => {
+    if (!grades.length) return 0
+    const totalPercent = grades.reduce((sum, grade) => sum + (grade.marks / grade.maxMarks) * 100, 0)
+    return Math.round(totalPercent / grades.length)
+  }, [grades])
+
+  const activeChild = children.find((child) => child.studentProfile?.id === activeChildStudentId)
+
+  const tabs: Array<{ id: TabKey; label: string; icon: any }> = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'progress', label: "Child's Progress", icon: TrendingUp },
+    { id: 'attendance', label: 'Attendance', icon: ShieldCheck },
+    { id: 'assignments', label: 'Assignments', icon: FileText },
+    { id: 'schedule', label: 'Schedule', icon: CalendarDays },
+    { id: 'announcements', label: 'Announcements', icon: Megaphone },
+  ]
+
+  const handleLogout = () => {
+    localStorage.removeItem('user')
+    localStorage.removeItem('token')
+    router.push('/portal/login')
   }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg transition-all duration-300 fixed h-full z-30`}>
-        <div className="p-4">
-          {/* Logo */}
-          <div className="flex items-center space-x-3 mb-8">
-            <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-              <GraduationCap className="h-6 w-6 text-white" />
-            </div>
-            {sidebarOpen && (
-              <div>
-                <h2 className="font-bold text-gray-900">Sarthak Group</h2>
-                <p className="text-xs text-gray-500">Parent Portal</p>
-              </div>
-            )}
-          </div>
-
-          {/* Navigation */}
-          <nav className="space-y-2">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                activeTab === 'dashboard' ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <BookOpen className="h-5 w-5" />
-              {sidebarOpen && <span>Dashboard</span>}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('progress')}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                activeTab === 'progress' ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <TrendingUp className="h-5 w-5" />
-              {sidebarOpen && <span>Child's Progress</span>}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('attendance')}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                activeTab === 'attendance' ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <CheckCircle className="h-5 w-5" />
-              {sidebarOpen && <span>Attendance</span>}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('assignments')}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                activeTab === 'assignments' ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <FileText className="h-5 w-5" />
-              {sidebarOpen && <span>Assignments</span>}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('schedule')}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                activeTab === 'schedule' ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <Calendar className="h-5 w-5" />
-              {sidebarOpen && <span>Class Schedule</span>}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('fees')}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                activeTab === 'fees' ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <Wallet className="h-5 w-5" />
-              {sidebarOpen && <span>Fee Details</span>}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('chat')}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                activeTab === 'chat' ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <MessageSquare className="h-5 w-5" />
-              {sidebarOpen && <span>Chat with Teachers</span>}
-            </button>
-          </nav>
-        </div>
-
-        {/* Logout */}
-        <div className="absolute bottom-4 left-0 right-0 px-4">
-          <Link href="/portal/login" className="flex items-center space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-            <LogOut className="h-5 w-5" />
-            {sidebarOpen && <span>Logout</span>}
+      <aside className="w-72 bg-white border-r p-4 space-y-4">
+        <div className="flex items-center gap-3">
+          <Link href="/" className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+            <GraduationCap className="h-6 w-6 text-white" />
           </Link>
+          <div>
+            <p className="font-semibold text-gray-900">Sarthak Group</p>
+            <p className="text-xs text-gray-500">Parent Portal</p>
+          </div>
         </div>
+
+        <div className="border rounded-lg p-3">
+          <p className="font-medium text-sm text-gray-900">
+            {user ? `${user.firstName} ${user.lastName}` : 'Parent'}
+          </p>
+          <p className="text-xs text-gray-500">{user?.email}</p>
+        </div>
+
+        <div className="space-y-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+                activeTab === tab.id
+                  ? 'bg-purple-50 text-purple-700'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <tab.icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50"
+        >
+          <LogOut className="h-4 w-4" />
+          Logout
+        </button>
       </aside>
 
-      {/* Main Content */}
-      <main className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
-        {/* Top Header */}
-        <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
-          <button 
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-
-          <div className="flex items-center space-x-4">
-            <button className="p-2 hover:bg-gray-100 rounded-lg relative">
-              <Bell className="h-5 w-5 text-gray-600" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
-            
-            <div className="flex items-center space-x-3">
-              <img src={childInfo.photo} alt={childInfo.name} className="w-10 h-10 rounded-full object-cover" />
-              <div className="hidden md:block">
-                <p className="font-medium text-gray-900">Parent of {childInfo.name}</p>
-                <p className="text-sm text-gray-500">{childInfo.class} - {childInfo.section}</p>
-              </div>
-            </div>
+      <main className="flex-1 p-6 space-y-4">
+        <div className="bg-white rounded-xl border p-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">Parent Workspace</h1>
+            <p className="text-sm text-gray-500">
+              Monitor your child's academics using live data from courses, attendance, grades, and assignments.
+            </p>
           </div>
-        </header>
-
-        {/* Dashboard Content */}
-        <div className="p-6">
-          {/* Welcome Banner */}
-          <div className="bg-gradient-to-r from-purple-600 to-purple-800 rounded-2xl p-6 text-white mb-6">
-            <h1 className="text-2xl font-bold mb-2">Welcome, Parent! 👋</h1>
-            <p className="text-purple-100">Monitor your child's progress and stay connected with teachers.</p>
+          <div className="flex items-center gap-2">
+            <UserRound className="h-4 w-4 text-gray-500" />
+            <select
+              value={activeChildStudentId}
+              onChange={(e) => {
+                const selectedStudentId = e.target.value
+                setActiveChildStudentId(selectedStudentId)
+              }}
+              className="border rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="">Select Child</option>
+              {children.map((child) => (
+                <option key={child.id} value={child.studentProfile?.id || ''}>
+                  {child.firstName} {child.lastName} ({child.studentProfile?.class || 'Student'})
+                </option>
+              ))}
+            </select>
           </div>
+        </div>
 
-          {/* Child Info Card */}
-          <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <img src={childInfo.photo} alt={childInfo.name} className="w-16 h-16 rounded-full object-cover" />
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">{childInfo.name}</h2>
-                  <p className="text-gray-500">{childInfo.class} - Section {childInfo.section} | Roll No: {childInfo.rollNumber}</p>
-                  <p className="text-sm text-gray-400">Enrolled since: {childInfo.enrollmentDate}</p>
-                </div>
-              </div>
-              <button className="flex items-center space-x-2 px-4 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200">
-                <Eye className="h-4 w-4" />
-                <span>View Profile</span>
-              </button>
-            </div>
+        {error && <div className="rounded-lg bg-red-100 text-red-700 px-4 py-2 text-sm">{error}</div>}
+        {loading && <div className="rounded-lg bg-blue-50 text-blue-700 px-4 py-2 text-sm">Loading data...</div>}
+
+        {!loading && children.length === 0 && (
+          <div className="rounded-lg bg-yellow-50 text-yellow-700 px-4 py-3 text-sm">
+            No children are linked to this parent account yet. Ask admin to link a student profile.
           </div>
+        )}
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <div className="bg-white rounded-xl p-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Attendance</p>
-                  <p className="text-2xl font-bold text-gray-900">{attendance.percentage}%</p>
-                  <p className="text-sm text-gray-500">{attendance.present}/{attendance.total} days</p>
-                </div>
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Average Grade</p>
-                  <p className="text-2xl font-bold text-gray-900">A</p>
-                  <p className="text-sm text-gray-500">Top performer</p>
-                </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Pending Assignments</p>
-                  <p className="text-2xl font-bold text-gray-900">{assignments.filter(a => a.status === 'pending').length}</p>
-                  <p className="text-sm text-gray-500">Due this week</p>
-                </div>
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <FileText className="h-6 w-6 text-orange-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Fee Status</p>
-                  <p className="text-2xl font-bold text-gray-900">₹{feeDetails.pending.toLocaleString()}</p>
-                  <p className="text-sm text-gray-500">Pending</p>
-                </div>
-                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                  <Wallet className="h-6 w-6 text-red-600" />
-                </div>
-              </div>
-            </div>
+        {!loading && activeChild && (
+          <div className="rounded-lg bg-purple-50 border border-purple-100 px-4 py-3 text-sm text-purple-800">
+            Viewing: <strong>{activeChild.firstName} {activeChild.lastName}</strong> • Class {activeChild.studentProfile?.class || '-'}
           </div>
+        )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Performance */}
-            <div className="bg-white rounded-xl shadow-sm">
-              <div className="p-6 border-b">
-                <h2 className="text-lg font-semibold text-gray-900">Recent Exam Results</h2>
+        {activeTab === 'dashboard' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-xl border p-4">
+                <p className="text-sm text-gray-500">Enrolled Courses</p>
+                <p className="text-2xl font-bold">{enrollments.length}</p>
               </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  {recentPerformance.map((result, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="font-medium text-gray-900">{result.subject}</p>
-                        <p className="text-sm text-gray-500">{result.exam}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-gray-900">{result.marks}/{result.total}</p>
-                        <span className={`text-xs px-2 py-1 rounded-full ${getGradeColor(result.grade)}`}>
-                          {result.grade}
-                        </span>
-                      </div>
+              <div className="bg-white rounded-xl border p-4">
+                <p className="text-sm text-gray-500">Attendance</p>
+                <p className="text-2xl font-bold">{attendanceStats.percentage}%</p>
+              </div>
+              <div className="bg-white rounded-xl border p-4">
+                <p className="text-sm text-gray-500">Average Marks</p>
+                <p className="text-2xl font-bold">{averageMarks}%</p>
+              </div>
+              <div className="bg-white rounded-xl border p-4">
+                <p className="text-sm text-gray-500">Pending Assignments</p>
+                <p className="text-2xl font-bold">
+                  {childAssignments.filter((assignment) => !submissionByAssignment.get(assignment.id)).length}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-white rounded-xl border p-4">
+                <h2 className="font-semibold mb-3">Recent Results</h2>
+                <div className="space-y-3">
+                  {grades.slice(0, 6).map((grade) => (
+                    <div key={grade.id} className="border rounded-lg p-3">
+                      <p className="font-medium">{grade.course?.name}</p>
+                      <p className="text-sm text-gray-500">{grade.examName}</p>
+                      <p className="text-sm text-gray-700 mt-1">
+                        {grade.marks}/{grade.maxMarks} {grade.grade ? `• ${grade.grade}` : ''}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl border p-4">
+                <h2 className="font-semibold mb-3">Upcoming Classes</h2>
+                <div className="space-y-3">
+                  {childSchedule.slice(0, 6).map((entry) => (
+                    <div key={entry.id} className="border rounded-lg p-3">
+                      <p className="font-medium">{entry.subject}</p>
+                      <p className="text-sm text-gray-500">
+                        {entry.dayOfWeek} • {entry.startTime} - {entry.endTime}
+                      </p>
+                      <p className="text-xs text-gray-400">{entry.course?.name}</p>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Fee Status */}
-            <div className="bg-white rounded-xl shadow-sm">
-              <div className="p-6 border-b">
-                <h2 className="text-lg font-semibold text-gray-900">Fee Status</h2>
+        {activeTab === 'progress' && (
+          <div className="bg-white rounded-xl border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="text-left px-4 py-3">Course</th>
+                  <th className="text-left px-4 py-3">Exam</th>
+                  <th className="text-left px-4 py-3">Marks</th>
+                  <th className="text-left px-4 py-3">Grade</th>
+                  <th className="text-left px-4 py-3">Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {grades.map((grade) => (
+                  <tr key={grade.id} className="border-t">
+                    <td className="px-4 py-3">{grade.course?.name}</td>
+                    <td className="px-4 py-3">{grade.examName}</td>
+                    <td className="px-4 py-3">{grade.marks}/{grade.maxMarks}</td>
+                    <td className="px-4 py-3">{grade.grade || '-'}</td>
+                    <td className="px-4 py-3">{grade.remarks || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'attendance' && (
+          <div className="space-y-4">
+            <div className="grid md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-xl border p-4">
+                <p className="text-sm text-gray-500">Total Classes</p>
+                <p className="text-2xl font-bold">{attendanceStats.total}</p>
               </div>
-              <div className="p-6">
-                <div className="mb-4">
-                  <div className="flex justify-between mb-2">
-                    <span className="text-gray-600">Total Fee</span>
-                    <span className="font-bold text-gray-900">₹{feeDetails.totalFee.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-gray-600">Paid</span>
-                    <span className="font-bold text-green-600">₹{feeDetails.paid.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between mb-4">
-                    <span className="text-gray-600">Pending</span>
-                    <span className="font-bold text-red-600">₹{feeDetails.pending.toLocaleString()}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div className="bg-green-500 h-3 rounded-full" style={{ width: `${(feeDetails.paid / feeDetails.totalFee) * 100}%` }}></div>
-                  </div>
-                </div>
-                <div className="p-4 bg-orange-50 rounded-lg">
-                  <p className="text-orange-800 font-medium">Next Installment: ₹{feeDetails.nextInstallment.toLocaleString()}</p>
-                  <p className="text-orange-600 text-sm">Due Date: {feeDetails.dueDate}</p>
-                </div>
-                <button className="w-full mt-4 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700">
-                  Pay Now
-                </button>
+              <div className="bg-white rounded-xl border p-4">
+                <p className="text-sm text-gray-500">Present</p>
+                <p className="text-2xl font-bold">{attendanceStats.present}</p>
               </div>
+              <div className="bg-white rounded-xl border p-4">
+                <p className="text-sm text-gray-500">Absent</p>
+                <p className="text-2xl font-bold">{attendanceStats.absent}</p>
+              </div>
+              <div className="bg-white rounded-xl border p-4">
+                <p className="text-sm text-gray-500">Attendance %</p>
+                <p className="text-2xl font-bold">{attendanceStats.percentage}%</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="text-left px-4 py-3">Date</th>
+                    <th className="text-left px-4 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attendance.map((entry) => (
+                    <tr key={entry.id} className="border-t">
+                      <td className="px-4 py-3">{new Date(entry.date).toLocaleDateString()}</td>
+                      <td className="px-4 py-3">{entry.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
+        )}
 
-          {/* Upcoming Classes */}
-          <div className="mt-6 bg-white rounded-xl shadow-sm">
-            <div className="p-6 border-b">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Upcoming Classes</h2>
-                <Link href="/portal/parent/schedule" className="text-purple-600 hover:text-purple-700 text-sm">View All</Link>
-              </div>
-            </div>
-            <div className="p-6 space-y-4">
-              {upcomingClasses.map((cls) => (
-                <div key={cls.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className={`w-3 h-3 rounded-full ${getStatusColor(cls.status)}`}></div>
+        {activeTab === 'assignments' && (
+          <div className="space-y-3">
+            {childAssignments.map((assignment) => {
+              const submission = submissionByAssignment.get(assignment.id)
+              const status = submission
+                ? submission.marks !== null
+                  ? 'graded'
+                  : 'submitted'
+                : 'pending'
+              return (
+                <div key={assignment.id} className="bg-white rounded-xl border p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="font-medium text-gray-900">{cls.subject}</p>
-                      <p className="text-sm text-gray-500">{cls.teacher} • {cls.room}</p>
+                      <p className="font-semibold">{assignment.title}</p>
+                      <p className="text-sm text-gray-500">{assignment.course?.name}</p>
+                      <p className="text-sm text-gray-600 mt-1">{assignment.description}</p>
+                    </div>
+                    <div className="text-right">
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          status === 'pending'
+                            ? 'bg-orange-100 text-orange-700'
+                            : status === 'submitted'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-green-100 text-green-700'
+                        }`}
+                      >
+                        {status.toUpperCase()}
+                      </span>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Due: {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : '-'}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium text-gray-900">{cls.time}</p>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      cls.status === 'live' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
-                    }`}>
-                      {cls.status === 'live' ? 'LIVE NOW' : cls.status}
-                    </span>
-                  </div>
+                  {submission && (
+                    <div className="mt-3 rounded-lg bg-gray-50 p-3 text-sm">
+                      <p>Submitted: {new Date(submission.submittedAt).toLocaleString()}</p>
+                      {submission.marks !== null && (
+                        <p>Score: <strong>{submission.marks}/{assignment.maxMarks}</strong></p>
+                      )}
+                      {submission.feedback && <p>Feedback: {submission.feedback}</p>}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
+              )
+            })}
           </div>
+        )}
 
-          {/* Announcements */}
-          <div className="mt-6 bg-white rounded-xl shadow-sm">
-            <div className="p-6 border-b">
-              <h2 className="text-lg font-semibold text-gray-900">Recent Announcements</h2>
-            </div>
-            <div className="p-6 space-y-4">
-              {announcements.map((ann) => (
-                <div key={ann.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                  <div className={`w-2 h-2 mt-2 rounded-full ${
-                    ann.priority === 'high' ? 'bg-red-500' : ann.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
-                  }`}></div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{ann.title}</p>
-                    <p className="text-sm text-gray-500">{ann.date}</p>
-                  </div>
-                  <span className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded-full">
-                    {ann.type}
-                  </span>
-                </div>
-              ))}
-            </div>
+        {activeTab === 'schedule' && (
+          <div className="bg-white rounded-xl border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="text-left px-4 py-3">Day</th>
+                  <th className="text-left px-4 py-3">Time</th>
+                  <th className="text-left px-4 py-3">Subject</th>
+                  <th className="text-left px-4 py-3">Course</th>
+                  <th className="text-left px-4 py-3">Room</th>
+                </tr>
+              </thead>
+              <tbody>
+                {childSchedule.map((entry) => (
+                  <tr key={entry.id} className="border-t">
+                    <td className="px-4 py-3">{entry.dayOfWeek}</td>
+                    <td className="px-4 py-3">{entry.startTime} - {entry.endTime}</td>
+                    <td className="px-4 py-3">{entry.subject}</td>
+                    <td className="px-4 py-3">{entry.course?.name}</td>
+                    <td className="px-4 py-3">{entry.roomNumber || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+        )}
+
+        {activeTab === 'announcements' && (
+          <div className="space-y-3">
+            {announcements.map((announcement) => (
+              <div key={announcement.id} className="bg-white rounded-xl border p-4">
+                <p className="font-semibold text-gray-900">
+                  {announcement.title}
+                  {announcement.isPinned && (
+                    <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
+                      PINNED
+                    </span>
+                  )}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">{announcement.content}</p>
+                <p className="text-xs text-gray-400 mt-2">
+                  {new Date(announcement.createdAt).toLocaleString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   )
 }
-
