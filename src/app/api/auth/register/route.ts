@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
                 class: studentClass || "Class 1",
                 medium,
                 schoolName,
-                parentId,
+                parent: parentId ? { connect: { id: parentId } } : undefined,
               },
             },
           },
@@ -320,13 +320,16 @@ export async function PUT(request: NextRequest) {
             : body.schoolName
               ? String(body.schoolName)
               : undefined,
-        parentId:
-          body.parentId === null || body.parentId === ""
-            ? null
-            : body.parentId
-              ? String(body.parentId)
-              : undefined,
       };
+
+      if (Object.prototype.hasOwnProperty.call(body, "parentId")) {
+        studentData.parent =
+          body.parentId === null || body.parentId === ""
+            ? { disconnect: true }
+            : body.parentId
+              ? { connect: { id: String(body.parentId) } }
+              : undefined;
+      }
 
       const parsedDob = parseOptionalDate(body.dateOfBirth);
       if (parsedDob !== undefined) {
@@ -345,12 +348,12 @@ export async function PUT(request: NextRequest) {
                   : body.schoolName
                     ? String(body.schoolName)
                     : null,
-              parentId:
+              parent:
                 body.parentId === null || body.parentId === ""
-                  ? null
+                  ? undefined
                   : body.parentId
-                    ? String(body.parentId)
-                    : null,
+                    ? { connect: { id: String(body.parentId) } }
+                    : undefined,
               dateOfBirth: parseOptionalDate(body.dateOfBirth) ?? null,
             },
           };
