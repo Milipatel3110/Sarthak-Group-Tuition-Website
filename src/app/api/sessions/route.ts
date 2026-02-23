@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Prisma } from '@prisma/client'
+import { Prisma, SessionStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
 // GET all live sessions or filter
@@ -15,7 +15,12 @@ export async function GET(request: NextRequest) {
 
     if (courseId) where.courseId = courseId
     if (facultyId) where.facultyId = facultyId
-    if (status) where.status = status
+    if (status) {
+      if (!Object.values(SessionStatus).includes(status as SessionStatus)) {
+        return NextResponse.json({ error: 'Invalid session status filter' }, { status: 400 })
+      }
+      where.status = status as SessionStatus
+    }
     if (search && search.trim()) {
       where.OR = [
         { title: { contains: search.trim(), mode: 'insensitive' } },
