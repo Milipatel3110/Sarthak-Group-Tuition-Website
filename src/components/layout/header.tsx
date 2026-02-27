@@ -75,11 +75,11 @@ export function Header() {
             </a>
           </div>
 
-          {/* <Link href="/portal/login" className="hidden sm:block">
+          <Link href="/portal/login" className="hidden sm:block">
             <Button variant="outline" size="sm">
               Portal Login
             </Button>
-          </Link> */}
+          </Link>
           <Link href="/enroll">
             <Button size="sm">
               Enroll Now
