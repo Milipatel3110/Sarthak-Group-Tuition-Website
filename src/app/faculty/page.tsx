@@ -1,12 +1,12 @@
-import { GraduationCap, Mail, Phone, Award, BookOpen, Users } from 'lucide-react'
+import { GraduationCap, BookOpen, Users, Award } from 'lucide-react'
 
 const faculty = [
   {
     id: 1,
     name: "Arpan Patel",
-    qualification: "B.Sc. Mathematics, M.Ed.",
-    subjects: ["Mathematics", "JEE Mathematics", "Science"],
-    experience: 25,
+    qualification: "M.Sc., M.Ed",
+    subjects: ["Maths", "Science"],
+    standards: ["Std 8", "9", "10", "11", "12"],
     bio: "Founder and owner of Sarthak Group Tuition. Expert Mathematics teacher with 25+ years of experience in JEE and board exam preparation. Known for making complex concepts simple and understandable.",
     isOwner: true,
     image: "/faculty/sarthak.jpg"
@@ -14,52 +14,147 @@ const faculty = [
   {
     id: 2,
     name: "Chetna Patel",
-    qualification: "B.Sc. Sanskrit, M.Ed.",
-    subjects: ["Social Studies", "Sanskrit", "Gujarati"],
-    experience: 20,
-    bio: "Experienced Physics teacher with deep knowledge of the subject. Specializes in making physics interesting and easy to learn for students.",
+    qualification: "M.A., B.A., B.Ed",
+    subjects: ["Social Science", "Gujarati"],
+    standards: ["Primary"],
+    bio: "Experienced teacher with deep knowledge of Social Science and Gujarati. Specializes in making learning interesting and easy for primary students.",
     isOwner: true,
     image: "/faculty/rajesh.jpg"
   },
   {
     id: 3,
-    name: "Rantidev Dixit",
-    qualification: "M.Sc. Physics, B.Ed.",
-    subjects: ["Physics", "NEET/JEE Physics"],
-    experience: 20,
-    bio: "Dedicated Physics teacher with expertise in organic and inorganic physics. Helps students achieve excellent results in boards and competitive exams.",
-    isOwner: false,
-    image: "/faculty/priya.jpg"
+    name: "Mukesh Patel",
+    qualification: "Not specified",
+    subjects: ["English"],
+    standards: ["Std 9 to 12"],
+    bio: "English teacher dedicated to helping students improve their language skills and communication abilities.",
+    isOwner: false
   },
   {
     id: 4,
-    name: "Mr. Amit Verma",
-    qualification: "M.Sc. Biology, NET Qualified",
-    subjects: ["Biology", "NEET Biology"],
-    experience: 7,
-    bio: "Biology expert with focus on conceptual learning. Has helped numerous students crack NEET with high ranks.",
-    isOwner: false,
-    image: "/faculty/amit.jpg"
+    name: "Neha Patel",
+    qualification: "Not specified",
+    subjects: ["Social Science"],
+    standards: ["Std 9", "10"],
+    bio: "Social Science expert focused on making history and geography engaging for students.",
+    isOwner: false
   },
   {
     id: 5,
-    name: "CA Rohit Sharma",
-    qualification: "CA, M.Com",
-    subjects: ["Accountancy", "Business Studies"],
-    experience: 9,
-    bio: "Chartered Accountant with expertise in Accountancy and Business Studies. Makes accounting concepts easy and interesting.",
-    isOwner: false,
-    image: "/faculty/rohit.jpg"
+    name: "Nilesh Trivedi",
+    qualification: "Not specified",
+    subjects: ["Science"],
+    standards: ["Std 9", "10"],
+    bio: "Science teacher passionate about making complex scientific concepts accessible to students.",
+    isOwner: false
   },
   {
     id: 6,
-    name: "Dr. Sunita Devi",
-    qualification: "M.A. Economics, Ph.D.",
-    subjects: ["Economics", "Business Economics"],
-    experience: 11,
-    bio: "Economics expert with research experience. Simplifies economic theories for better understanding and application.",
-    isOwner: false,
-    image: "/faculty/sunita.jpg"
+    name: "Kinjal Purohit",
+    qualification: "Not specified",
+    subjects: ["Gujarati", "Hindi"],
+    standards: ["Std 9 to 12"],
+    bio: "Language teacher specializing in Gujarati and Hindi with effective teaching methods.",
+    isOwner: false
+  },
+  {
+    id: 7,
+    name: "Satish Thakkar",
+    qualification: "Not specified",
+    subjects: ["Gujarati"],
+    standards: ["Std 9 to 12"],
+    bio: "Experienced Gujarati teacher helping students master the language.",
+    isOwner: false
+  },
+  {
+    id: 8,
+    name: "Bhavik Joshi",
+    qualification: "Not specified",
+    subjects: ["Sanskrit"],
+    standards: ["Std 7 to 10"],
+    bio: "Sanskrit teacher dedicated to preserving and teaching ancient language traditions.",
+    isOwner: false
+  },
+  {
+    id: 9,
+    name: "Vijay Suthar",
+    qualification: "Not specified",
+    subjects: ["English"],
+    standards: ["Std 8 to 12"],
+    bio: "English language instructor focused on building strong communication skills.",
+    isOwner: false
+  },
+  {
+    id: 10,
+    name: "Dipendra Pal",
+    qualification: "Not specified",
+    subjects: ["English", "Science"],
+    standards: ["Std 8 to 10"],
+    bio: "Dedicated teacher with expertise in English and Science subjects.",
+    isOwner: false
+  },
+  {
+    id: 11,
+    name: "Shweta Parekh",
+    qualification: "Not specified",
+    subjects: ["Social Science", "Economics", "BA English Medium"],
+    standards: ["Std 9", "10", "11", "12"],
+    bio: "Social Science and Economics teacher with comprehensive knowledge of the subjects.",
+    isOwner: false
+  },
+  {
+    id: 12,
+    name: "Janak Patel",
+    qualification: "Not specified",
+    subjects: ["Commerce"],
+    standards: ["Std 11", "12"],
+    bio: "Commerce teacher specializing in business studies and accounting.",
+    isOwner: false
+  },
+  {
+    id: 13,
+    name: "Ravi Darji",
+    qualification: "B.A.",
+    subjects: ["Commerce", "Statistics"],
+    standards: ["Std 11", "12"],
+    bio: "Experienced Commerce and Statistics teacher with practical knowledge.",
+    isOwner: false
+  },
+  {
+    id: 14,
+    name: "Chintan Patel",
+    qualification: "Not specified",
+    subjects: ["Science", "Maths"],
+    standards: ["Std 11", "12"],
+    bio: "Science and Maths teacher dedicated to student success in board exams.",
+    isOwner: false
+  },
+  {
+    id: 15,
+    name: "Rajnikant Dixit",
+    qualification: "Not specified",
+    subjects: ["Physics"],
+    standards: ["Std 11", "12"],
+    bio: "Physics teacher with expertise in helping students understand complex concepts.",
+    isOwner: false
+  },
+  {
+    id: 16,
+    name: "Shital Dave",
+    qualification: "S.S., D.Ed",
+    subjects: ["Social Science", "English"],
+    standards: ["Primary"],
+    bio: "Primary school teacher with expertise in Social Science and English.",
+    isOwner: false
+  },
+  {
+    id: 17,
+    name: "Ekta Shah",
+    qualification: "M.B.A.",
+    subjects: ["Maths", "Science"],
+    standards: ["Primary"],
+    bio: "MBA graduate teaching Maths and Science to primary students with innovative methods.",
+    isOwner: false
   }
 ]
 
@@ -85,9 +180,17 @@ export default function FacultyPage() {
                 <div className={`h-2 ${teacher.isOwner ? 'bg-gradient-to-r from-yellow-400 to-orange-500' : 'bg-blue-500'}`}></div>
                 <div className="p-6">
                   <div className="flex items-start space-x-4 mb-4">
-                    <div className={`w-20 h-20 rounded-full flex items-center justify-center ${teacher.isOwner ? 'bg-gradient-to-r from-yellow-100 to-orange-100' : 'bg-blue-100'}`}>
-                      <GraduationCap className={`h-10 w-10 ${teacher.isOwner ? 'text-orange-600' : 'text-blue-600'}`} />
-                    </div>
+                    {teacher.image ? (
+                      <img 
+                        src={teacher.image} 
+                        alt={teacher.name}
+                        className="w-20 h-20 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className={`w-20 h-20 rounded-full flex items-center justify-center ${teacher.isOwner ? 'bg-gradient-to-r from-yellow-100 to-orange-100' : 'bg-blue-100'}`}>
+                        <GraduationCap className={`h-10 w-10 ${teacher.isOwner ? 'text-orange-600' : 'text-blue-600'}`} />
+                      </div>
+                    )}
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="text-xl font-bold">{teacher.name}</h3>
@@ -98,10 +201,6 @@ export default function FacultyPage() {
                         )}
                       </div>
                       <p className="text-gray-600 text-sm">{teacher.qualification}</p>
-                      <div className="flex items-center text-sm text-gray-500 mt-1">
-                        <Award className="h-4 w-4 mr-1" />
-                        {teacher.experience}+ years experience
-                      </div>
                     </div>
                   </div>
                   
@@ -110,6 +209,17 @@ export default function FacultyPage() {
                       {teacher.subjects.map((subject, idx) => (
                         <span key={idx} className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-sm">
                           {subject}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Standards</p>
+                    <div className="flex flex-wrap gap-2">
+                      {teacher.standards.map((standard, idx) => (
+                        <span key={idx} className="px-2 py-1 bg-green-50 text-green-700 rounded text-sm">
+                          {standard}
                         </span>
                       ))}
                     </div>
