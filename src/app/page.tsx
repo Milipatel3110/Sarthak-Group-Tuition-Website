@@ -10,6 +10,13 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1920')] bg-cover bg-center opacity-10"></div>
         <div className="container mx-auto px-4 py-24 relative z-10">
           <div className="max-w-3xl">
+            <div className="flex items-center gap-4 mb-6">
+              <img 
+                src="/logo.jpg" 
+                alt="Sarthak Group Tuition Logo" 
+                className="h-20 w-auto rounded-lg"
+              />
+            </div>
             <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
               Excellence in Education at <span className="text-blue-300">Sarthak Group Tuition</span>
             </h1>
