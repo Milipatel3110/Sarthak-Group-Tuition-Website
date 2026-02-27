@@ -25,7 +25,7 @@ export default function HomePage() {
               {/* Logo and Badge */}
               <div className="flex items-center gap-4">
                 <img 
-                  src="/logo.jpg" 
+                  src="/logo.png" 
                   alt="Sarthak Group Tuition Logo" 
                   className="h-16 w-auto rounded-xl shadow-lg"
                 />
