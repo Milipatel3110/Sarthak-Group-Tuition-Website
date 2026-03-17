@@ -6,16 +6,16 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section - Creative EdTech Style */}
-      <section className="relative bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 text-white overflow-hidden min-h-screen flex items-center">
+      <section className="hero-bg relative text-white overflow-hidden min-h-screen flex items-center">
         {/* Animated Background Elements */}
         <div className="absolute inset-0">
           {/* Floating Shapes */}
-          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-20 left-10 w-72 h-72 rounded-full blur-3xl animate-pulse" style={{ backgroundColor: 'rgba(59,130,246,0.2)' }}></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ backgroundColor: 'rgba(168,85,247,0.2)', animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 left-1/2 w-64 h-64 rounded-full blur-3xl animate-pulse" style={{ backgroundColor: 'rgba(34,211,238,0.2)', animationDelay: '2s' }}></div>
           
           {/* Grid Pattern */}
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMtOS45NDEgMC0xOCA4LjA1OS0xOCAxOHM4LjA1OSAxOCAxOCAxOCAxOC04LjA1OSAxOC0xOC04LjA1OS0xOC0xOC0xOHptMCAzMmMtNy43MzIgMC0xNC02LjI2OC0xNC0xNHM2LjI2OC0xNCAxNC0xNCAxNCA2LjI2OCAxNCAxNC02LjI2OCAxNC0xNCAxNHoiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iLjAyIi8+PC9nPjwvc3ZnPg==')] opacity-30"></div>
+          <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "url(\"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMtOS45NDEgMC0xOCA4LjA1OS0xOCAxOHM4LjA1OSAxOCAxOCAxOCAxOC04LjA1OSAxOC0xOC04LjA1OS0xOC0xOC0xOHptMCAzMmMtNy43MzIgMC0xNC02LjI2OC0xNC0xNHM2LjI2OC0xNCAxNC0xNCAxNCA2LjI2OCAxNCAxNC02LjI2OCAxNC0xNCAxNHoiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iLjAyIi8+PC9nPjwvc3ZnPg==\")" }}></div>
         </div>
 
         <div className="container mx-auto px-4 py-24 relative z-10">
@@ -27,9 +27,9 @@ export default function HomePage() {
                 <img 
                   src="/logo.png" 
                   alt="Sarthak Group Tuition Logo" 
-                  className="h-16 w-auto rounded-xl shadow-lg"
+                  className="h-24 w-auto rounded-xl shadow-lg"
                 />
-                <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/20" style={{ backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(4px)' }}>
                   <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                   <span className="text-sm font-medium">25+ Years of Excellence</span>
                 </div>
@@ -38,7 +38,7 @@ export default function HomePage() {
               {/* Main Heading */}
               <div className="space-y-4">
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-                  Shape Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-400">Future</span> With Expert Guidance
+                  Shape Your <span className="hero-gradient-text">Future</span> With Expert Guidance
                 </h1>
                 <p className="text-lg md:text-xl text-blue-100/90 max-w-xl">
                   Join thousands of successful students who achieved their academic goals with Sarthak Group Tuition's proven teaching methodology.
@@ -48,7 +48,7 @@ export default function HomePage() {
               {/* Stats Row */}
               <div className="flex flex-wrap gap-6 py-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(4px)' }}>
                     <Users className="h-6 w-6 text-blue-400" />
                   </div>
                   <div>
@@ -57,7 +57,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(4px)' }}>
                     <GraduationCap className="h-6 w-6 text-purple-400" />
                   </div>
                   <div>
@@ -66,7 +66,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(4px)' }}>
                     <Award className="h-6 w-6 text-cyan-400" />
                   </div>
                   <div>
@@ -79,7 +79,7 @@ export default function HomePage() {
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link href="/enroll">
-                  <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0 shadow-lg shadow-blue-500/25 w-full sm:w-auto">
+                  <Button size="lg" className="text-white border-0 w-full sm:w-auto" style={{ background: 'linear-gradient(to right, #3b82f6, #a855f7)', boxShadow: '0 10px 15px -3px rgba(59,130,246,0.25)' }}>
                     Enroll Now
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
@@ -94,8 +94,14 @@ export default function HomePage() {
               {/* Trust Badges */}
               <div className="flex items-center gap-4 pt-4">
                 <div className="flex -space-x-2">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className={`w-10 h-10 rounded-full border-2 border-slate-900 bg-gradient-to-br ${['from-blue-400', 'from-purple-400', 'from-cyan-400', 'from-pink-400', 'from-yellow-400'][i]} to-gray-600`}></div>
+                  {[
+                    'linear-gradient(to bottom right, #60a5fa, #4b5563)',
+                    'linear-gradient(to bottom right, #c084fc, #4b5563)',
+                    'linear-gradient(to bottom right, #22d3ee, #4b5563)',
+                    'linear-gradient(to bottom right, #f472b6, #4b5563)',
+                    'linear-gradient(to bottom right, #facc15, #4b5563)',
+                  ].map((gradient, i) => (
+                    <div key={i} className="w-10 h-10 rounded-full border-2 border-slate-900" style={{ background: gradient }}></div>
                   ))}
                 </div>
                 <div className="text-sm">
@@ -105,36 +111,36 @@ export default function HomePage() {
             </div>
 
             {/* Right Visual */}
-            <div className="relative hidden lg:block">
+            <div className="relative hero-right-panel">
               {/* Main Card */}
               <div className="relative">
-                <div className="absolute -inset-4 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 rounded-3xl blur-2xl opacity-30"></div>
-                <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20">
+                <div className="absolute -inset-4 rounded-3xl blur-2xl opacity-30" style={{ background: 'linear-gradient(to right, #3b82f6, #a855f7, #22d3ee)' }}></div>
+                <div className="relative rounded-3xl p-8 border border-white/20" style={{ backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(24px)' }}>
                   {/* Feature Cards */}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/10 rounded-2xl p-6 text-center">
-                      <div className="w-14 h-14 mx-auto bg-gradient-to-br from-green-400 to-emerald-600 rounded-xl flex items-center justify-center mb-3">
+                    <div className="rounded-2xl p-6 text-center" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                      <div className="w-14 h-14 mx-auto rounded-xl flex items-center justify-center mb-3" style={{ background: 'linear-gradient(to bottom right, #4ade80, #059669)' }}>
                         <BookOpen className="h-7 w-7 text-white" />
                       </div>
                       <h3 className="font-semibold mb-1">Smart Learning</h3>
                       <p className="text-xs text-blue-200">Interactive digital classes</p>
                     </div>
-                    <div className="bg-white/10 rounded-2xl p-6 text-center">
-                      <div className="w-14 h-14 mx-auto bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center mb-3">
+                    <div className="rounded-2xl p-6 text-center" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                      <div className="w-14 h-14 mx-auto rounded-xl flex items-center justify-center mb-3" style={{ background: 'linear-gradient(to bottom right, #fb923c, #ef4444)' }}>
                         <Award className="h-7 w-7 text-white" />
                       </div>
                       <h3 className="font-semibold mb-1">Top Results</h3>
                       <p className="text-xs text-blue-200">95% passing rate</p>
                     </div>
-                    <div className="bg-white/10 rounded-2xl p-6 text-center">
-                      <div className="w-14 h-14 mx-auto bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl flex items-center justify-center mb-3">
+                    <div className="rounded-2xl p-6 text-center" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                      <div className="w-14 h-14 mx-auto rounded-xl flex items-center justify-center mb-3" style={{ background: 'linear-gradient(to bottom right, #c084fc, #ec4899)' }}>
                         <Users className="h-7 w-7 text-white" />
                       </div>
                       <h3 className="font-semibold mb-1">Expert Mentors</h3>
                       <p className="text-xs text-blue-200">17+ qualified teachers</p>
                     </div>
-                    <div className="bg-white/10 rounded-2xl p-6 text-center">
-                      <div className="w-14 h-14 mx-auto bg-gradient-to-br from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center mb-3">
+                    <div className="rounded-2xl p-6 text-center" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                      <div className="w-14 h-14 mx-auto rounded-xl flex items-center justify-center mb-3" style={{ background: 'linear-gradient(to bottom right, #22d3ee, #3b82f6)' }}>
                         <CheckCircle className="h-7 w-7 text-white" />
                       </div>
                       <h3 className="font-semibold mb-1">Complete Support</h3>
@@ -150,7 +156,7 @@ export default function HomePage() {
               </div>
 
               {/* Floating Elements */}
-              <div className="absolute -left-8 top-1/4 bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20 animate-bounce" style={{ animationDuration: '3s' }}>
+              <div className="absolute -left-8 top-1/4 rounded-2xl p-4 border border-white/20 animate-bounce" style={{ backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(4px)', animationDuration: '3s' }}>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
                     <Star className="h-5 w-5 text-white fill-white" />

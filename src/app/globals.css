@@ -52,6 +52,30 @@ html {
   animation: fadeIn 0.5s ease-out forwards;
 }
 
+/* Hero gradient text - explicit webkit support for Tailwind v4 */
+.hero-gradient-text {
+  background: linear-gradient(to right, #60a5fa, #22d3ee, #c084fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Hero dark gradient background - explicit for Tailwind v4 OKLCH compatibility */
+.hero-bg {
+  background: linear-gradient(to bottom right, #0f172a, #1e3a8a, #312e81) !important;
+}
+
+/* Right visual panel - hidden on mobile, shown on desktop */
+.hero-right-panel {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .hero-right-panel {
+    display: block;
+  }
+}
+
 /* Chatbot specific styles */
 .chatbot-gradient {
   background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
