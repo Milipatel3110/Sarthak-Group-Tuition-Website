@@ -21,7 +21,22 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         course: true,
-        faculty: { include: { user: true } }
+        faculty: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+                phone: true,
+                profilePhoto: true,
+                isActive: true,
+              },
+            },
+          },
+        }
       },
       orderBy: { createdAt: 'desc' }
     })

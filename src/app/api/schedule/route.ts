@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { Prisma } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 
 // GET schedule
 export async function GET(request: NextRequest) {
@@ -9,18 +8,35 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const courseId = searchParams.get('courseId')
     const dayOfWeek = searchParams.get('dayOfWeek')
+    const facultyId = searchParams.get('facultyId')
 
-    const where: any = {}
+    const where: Prisma.ScheduleWhereInput = {}
     if (courseId) where.courseId = courseId
     if (dayOfWeek) where.dayOfWeek = dayOfWeek
+    if (facultyId) where.facultyId = facultyId
 
     const schedule = await prisma.schedule.findMany({
       where,
       include: {
         course: true,
-        faculty: { include: { user: true } }
+        faculty: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+                phone: true,
+                profilePhoto: true,
+                isActive: true,
+              },
+            },
+          },
+        },
       },
-      orderBy: { startTime: 'asc' }
+      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }]
     })
 
     return NextResponse.json({ success: true, schedule })

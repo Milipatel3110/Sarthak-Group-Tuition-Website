@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { Prisma } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 
 // GET course materials
 export async function GET(request: NextRequest) {
@@ -9,16 +8,40 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const courseId = searchParams.get('courseId')
     const fileType = searchParams.get('fileType')
+    const facultyId = searchParams.get('facultyId')
+    const search = searchParams.get('search')
 
-    const where: any = {}
+    const where: Prisma.CourseMaterialWhereInput = {}
     if (courseId) where.courseId = courseId
     if (fileType) where.fileType = fileType
+    if (facultyId) where.facultyId = facultyId
+    if (search && search.trim()) {
+      where.OR = [
+        { title: { contains: search.trim(), mode: 'insensitive' } },
+        { description: { contains: search.trim(), mode: 'insensitive' } },
+      ]
+    }
 
     const materials = await prisma.courseMaterial.findMany({
       where,
       include: {
         course: true,
-        faculty: { include: { user: true } }
+        faculty: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+                phone: true,
+                profilePhoto: true,
+                isActive: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' }
     })
@@ -34,6 +57,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { title, description, courseId, facultyId, fileUrl, fileType } = await request.json()
+
+    if (!title || !courseId || !facultyId || !fileUrl || !fileType) {
+      return NextResponse.json(
+        { error: 'title, courseId, facultyId, fileUrl and fileType are required' },
+        { status: 400 }
+      )
+    }
 
     const material = await prisma.courseMaterial.create({
       data: {

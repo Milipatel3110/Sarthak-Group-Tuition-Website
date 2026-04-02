@@ -11,18 +11,28 @@ import {
 
 const adminInfo = { name: 'Admin' }
 
+interface EnrollmentItem {
+  id: string
+  studentName: string
+  class: string
+  course: string
+  status: string
+}
+
+interface MessageItem {
+  id: string
+  name: string
+  message: string
+  isResolved: boolean
+}
+
 export default function AdminDashboard() {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ totalStudents: 0, totalFaculty: 0, totalCourses: 0, pendingEnrollments: 0, revenueThisMonth: 0 })
-  const [recentEnrollments] = useState([
-    { id: 1, studentName: 'Rahul Sharma', class: 'Class 10', course: 'Science', status: 'pending' },
-    { id: 2, studentName: 'Priya Patel', class: 'Class 11', course: 'Commerce', status: 'approved' },
-  ])
-  const [recentMessages] = useState([
-    { id: 1, from: 'Rajesh Kumar', subject: 'Fee Inquiry', read: false },
-    { id: 2, from: 'Priya Sharma', subject: 'Class Timing', read: true },
-  ])
+  const [recentEnrollments, setRecentEnrollments] = useState<EnrollmentItem[]>([])
+  const [recentMessages, setRecentMessages] = useState<MessageItem[]>([])
 
   useEffect(() => {
     const user = localStorage.getItem('user')
@@ -34,21 +44,39 @@ export default function AdminDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const studentsRes = await fetch('/api/auth/register?role=STUDENT')
+      setLoading(true)
+      const [studentsRes, facultyRes, coursesRes, enrollmentsRes, contactRes] = await Promise.all([
+        fetch('/api/auth/register?role=STUDENT&isActive=true'),
+        fetch('/api/auth/register?role=FACULTY&isActive=true'),
+        fetch('/api/courses?isActive=true'),
+        fetch('/api/enrollments'),
+        fetch('/api/contact?status=unresolved'),
+      ])
+
       const studentsData = await studentsRes.json()
-      const facultyRes = await fetch('/api/auth/register?role=FACULTY')
       const facultyData = await facultyRes.json()
-      const coursesRes = await fetch('/api/courses')
       const coursesData = await coursesRes.json()
+      const enrollmentsData = await enrollmentsRes.json()
+      const contactData = await contactRes.json()
+
+      const allEnrollments: EnrollmentItem[] = enrollmentsData.enrollments || []
+      const unresolvedMessages: MessageItem[] = contactData.messages || []
+      const pendingEnrollments = allEnrollments.filter((item) => item.status === 'PENDING')
+
+      const revenueThisMonth = 0
       
       setStats({
         totalStudents: studentsData.users?.length || 0,
         totalFaculty: facultyData.users?.length || 0,
         totalCourses: coursesData.courses?.length || 0,
-        pendingEnrollments: 5,
-        revenueThisMonth: 425000
+        pendingEnrollments: pendingEnrollments.length,
+        revenueThisMonth,
       })
+
+      setRecentEnrollments(allEnrollments.slice(0, 5))
+      setRecentMessages(unresolvedMessages.slice(0, 5))
     } catch (err) { console.error(err) }
+    finally { setLoading(false) }
   }
 
   const handleLogout = () => {
@@ -142,13 +170,21 @@ export default function AdminDashboard() {
             <div className="bg-white rounded-xl shadow-sm">
               <div className="p-6 border-b flex items-center justify-between"><h2 className="text-lg font-semibold text-gray-900">Recent Enrollments</h2><Link href="/portal/admin/enrollments" className="text-red-600 hover:text-red-700 text-sm">View All</Link></div>
               <div className="p-6"><div className="space-y-4">
-                {recentEnrollments.map((enrollment) => (<div key={enrollment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"><div><p className="font-medium text-gray-900">{enrollment.studentName}</p><p className="text-sm text-gray-500">{enrollment.class} - {enrollment.course}</p></div><span className={enrollment.status === 'pending' ? 'text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-600' : 'text-xs px-2 py-1 rounded-full bg-green-100 text-green-600'}>{enrollment.status}</span></div>))}
+                {loading ? (
+                  <p className="text-sm text-gray-500">Loading...</p>
+                ) : recentEnrollments.length === 0 ? (
+                  <p className="text-sm text-gray-500">No enrollment activity yet.</p>
+                ) : recentEnrollments.map((enrollment) => (<div key={enrollment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"><div><p className="font-medium text-gray-900">{enrollment.studentName}</p><p className="text-sm text-gray-500">{enrollment.class} - {enrollment.course}</p></div><span className={enrollment.status === 'PENDING' ? 'text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-600' : enrollment.status === 'ACTIVE' ? 'text-xs px-2 py-1 rounded-full bg-green-100 text-green-600' : 'text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600'}>{enrollment.status}</span></div>))}
               </div></div>
             </div>
             <div className="bg-white rounded-xl shadow-sm">
               <div className="p-6 border-b flex items-center justify-between"><h2 className="text-lg font-semibold text-gray-900">Recent Messages</h2><Link href="/portal/admin/messages" className="text-red-600 hover:text-red-700 text-sm">View All</Link></div>
               <div className="p-6"><div className="space-y-4">
-                {recentMessages.map((message) => (<div key={message.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg"><div className="flex items-start space-x-3"><div className={message.read ? 'w-2 h-2 mt-2 rounded-full bg-gray-300' : 'w-2 h-2 mt-2 rounded-full bg-red-500'}></div><div><p className="font-medium text-gray-900">{message.from}</p><p className="text-sm text-gray-500">{message.subject}</p></div></div></div>))}
+                {loading ? (
+                  <p className="text-sm text-gray-500">Loading...</p>
+                ) : recentMessages.length === 0 ? (
+                  <p className="text-sm text-gray-500">No unresolved messages.</p>
+                ) : recentMessages.map((message) => (<div key={message.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg"><div className="flex items-start space-x-3"><div className={message.isResolved ? 'w-2 h-2 mt-2 rounded-full bg-gray-300' : 'w-2 h-2 mt-2 rounded-full bg-red-500'}></div><div><p className="font-medium text-gray-900">{message.name}</p><p className="text-sm text-gray-500">{message.message}</p></div></div></div>))}
               </div></div>
             </div>
           </div>

@@ -1,22 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { Prisma } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search')
+    const facultyId = searchParams.get('facultyId')
+    const isActive = searchParams.get('isActive')
 
-    const where: any = {}
+    const where: Prisma.CourseWhereInput = {}
     if (search) {
       where.OR = [
-        { name: { contains: search } },
-        { description: { contains: search } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
       ]
     }
+    if (facultyId) where.facultyId = facultyId
+    if (isActive === 'true' || isActive === 'false') where.isActive = isActive === 'true'
 
-    const courses = await prisma.course.findMany({ where, orderBy: { createdAt: 'desc' } })
+    const courses = await prisma.course.findMany({
+      where,
+      include: {
+        faculty: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+                phone: true,
+                profilePhoto: true,
+                isActive: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
 
     return NextResponse.json({ success: true, courses })
   } catch (error) {
@@ -28,6 +52,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { name, description, subjects, targetClass, fee, duration, features, syllabus, isActive, imageUrl } = await request.json()
+
+    if (!name || !description || !targetClass || !duration || fee === undefined) {
+      return NextResponse.json({ error: 'Required course fields are missing' }, { status: 400 })
+    }
 
     const course = await prisma.course.create({
       data: {
@@ -60,7 +88,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Course ID is required' }, { status: 400 })
     }
 
-    const { name, description, subjects, targetClass, fee, duration, features, syllabus, isActive, imageUrl } = await request.json()
+    const { name, description, subjects, targetClass, fee, duration, features, syllabus, isActive, imageUrl, facultyId } = await request.json()
 
     const course = await prisma.course.update({
       where: { id },
@@ -75,6 +103,7 @@ export async function PUT(request: NextRequest) {
         syllabus,
         isActive: isActive ?? true,
         imageUrl,
+        facultyId: facultyId === '' ? null : facultyId,
       },
     })
 
