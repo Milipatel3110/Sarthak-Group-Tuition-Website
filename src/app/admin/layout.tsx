@@ -13,6 +13,7 @@ import {
   Bell,
   MessageSquare,
   Users,
+  Images,
   LogOut,
   Loader2,
 } from "lucide-react";
@@ -38,6 +39,7 @@ const navItems = [
   { label: "Announcements", href: "/admin/announcements", icon: Bell            },
   { label: "Messages",      href: "/admin/messages",      icon: MessageSquare   },
   { label: "Faculty",       href: "/admin/faculty",       icon: Users           },
+  { label: "Gallery",       href: "/admin/gallery",       icon: Images          },
 ];
 
 // ── Sidebar ────────────────────────────────────────────────────────────────
