@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Header } from "@/components/layout/header";
-import { Footer } from "@/components/layout/footer";
-import SarthakAIChatbot from "@/components/chatbot/sarthak-ai";
+import { SiteShell } from "@/components/layout/site-shell";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,12 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} min-h-screen flex flex-col`}>
-        <Header />
-        <main className="flex-1">
-          {children}
-        </main>
-        <Footer />
-        <SarthakAIChatbot />
+        <SiteShell>{children}</SiteShell>
       </body>
     </html>
   );
