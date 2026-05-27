@@ -138,10 +138,17 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [checking, setChecking] = useState(true);
 
+  const isLoginPage = pathname === "/admin/login";
+
   useEffect(() => {
+    if (isLoginPage) {
+      setChecking(false);
+      return;
+    }
     try {
       const raw = localStorage.getItem("sarthak_admin");
       if (!raw) throw new Error("no session");
@@ -154,7 +161,7 @@ export default function AdminLayout({
     } finally {
       setChecking(false);
     }
-  }, [router]);
+  }, [router, isLoginPage]);
 
   function handleLogout() {
     localStorage.removeItem("sarthak_admin");
@@ -169,6 +176,9 @@ export default function AdminLayout({
       </div>
     );
   }
+
+  // Login page — render without sidebar/topbar
+  if (isLoginPage) return <>{children}</>;
 
   // Guard: if auth failed, router.replace was already called
   if (!admin) return null;
