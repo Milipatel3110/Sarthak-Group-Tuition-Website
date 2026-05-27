@@ -6,9 +6,9 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('Seeding database...')
 
-  // Create default admin user
+  // Create default admin user (legacy entry)
   const adminPassword = await bcrypt.hash('admin123', 12)
-  
+
   const admin = await prisma.user.upsert({
     where: { email: 'admin@sarthakgroup.com' },
     update: {},
@@ -24,6 +24,28 @@ async function main() {
   })
 
   console.log('Admin user created:', admin.email)
+
+  // Create primary admin user
+  const hashedPassword = await bcrypt.hash('Admin@123', 12)
+
+  const primaryAdmin = await prisma.user.upsert({
+    where: { email: 'admin@sarthak.com' },
+    update: {},
+    create: {
+      email: 'admin@sarthak.com',
+      password: hashedPassword,
+      role: 'ADMIN',
+      firstName: 'Sarthak',
+      lastName: 'Admin',
+      phone: '9876543210',
+      isActive: true,
+    },
+  })
+
+  console.log('✅ Admin user created/verified:')
+  console.log('   Email:', primaryAdmin.email)
+  console.log('   Password: Admin@123')
+  console.log('   Role:', primaryAdmin.role)
 
   // Create sample faculty (owner - Sarthak)
   const facultyPassword = await bcrypt.hash('faculty123', 12)
