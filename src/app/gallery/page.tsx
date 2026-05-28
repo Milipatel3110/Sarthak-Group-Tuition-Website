@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
-import { Building2, Users, Calendar, Plane, PartyPopper, ImageIcon, Facebook, Instagram, Youtube, ExternalLink, ChevronLeft, X } from 'lucide-react'
+import { Building2, Users, Calendar, Plane, PartyPopper, Trophy, ImageIcon, Facebook, Instagram, Youtube, ExternalLink, ChevronLeft, X } from 'lucide-react'
 
-type CategoryId = 'all' | 'BUILDING' | 'CLASSROOM' | 'EVENTS' | 'TRIPS' | 'PARTIES' | 'social'
+type CategoryId = 'all' | 'BUILDING' | 'CLASSROOM' | 'EVENTS' | 'TRIPS' | 'PARTIES' | 'RESULTS' | 'social'
 
 interface GalleryImage {
   id: string
@@ -22,6 +22,7 @@ const categories = [
   { id: 'EVENTS',    label: 'Events',    icon: Calendar    },
   { id: 'TRIPS',     label: 'Trips',     icon: Plane       },
   { id: 'PARTIES',   label: 'Parties',   icon: PartyPopper },
+  { id: 'RESULTS',   label: 'Results',   icon: Trophy      },
   { id: 'social',    label: 'Social',    icon: ExternalLink},
 ]
 
@@ -36,7 +37,7 @@ export default function GalleryPage() {
   // Lightbox
   const [lightbox, setLightbox] = useState<GalleryImage | null>(null)
 
-  const showYearFolders = (activeCategory === 'EVENTS' || activeCategory === 'TRIPS') && !selectedYear
+  const showYearFolders = (activeCategory === 'EVENTS' || activeCategory === 'TRIPS' || activeCategory === 'RESULTS') && !selectedYear
 
   useEffect(() => {
     async function load() {
@@ -174,7 +175,7 @@ export default function GalleryPage() {
           {!loading && showYearFolders && (
             <div>
               <h2 className="text-2xl font-bold mb-2 text-center">
-                {activeCategory === 'EVENTS' ? 'Annual Functions & Events' : 'Educational Trips'}
+                {activeCategory === 'EVENTS' ? 'Annual Functions & Events' : activeCategory === 'TRIPS' ? 'Educational Trips' : 'Results'}
               </h2>
               <p className="text-center text-gray-500 mb-8">Click on a year to view photos</p>
               {availableYears.length === 0 ? (
@@ -208,10 +209,10 @@ export default function GalleryPage() {
               <button onClick={() => setSelectedYear(null)}
                 className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium">
                 <ChevronLeft className="h-5 w-5" />
-                Back to {activeCategory === 'EVENTS' ? 'Events' : 'Trips'}
+                Back to {activeCategory === 'EVENTS' ? 'Events' : activeCategory === 'TRIPS' ? 'Trips' : 'Results'}
               </button>
               <h2 className="text-xl font-bold mt-3">
-                {activeCategory === 'EVENTS' ? `Annual Function — ${selectedYear}` : `Trip — ${selectedYear}`}
+                {activeCategory === 'EVENTS' ? `Annual Function — ${selectedYear}` : activeCategory === 'TRIPS' ? `Trip — ${selectedYear}` : `Results — ${selectedYear}`}
                 <span className="text-sm font-normal text-gray-500 ml-2">({visibleImages.length} photos)</span>
               </h2>
             </div>

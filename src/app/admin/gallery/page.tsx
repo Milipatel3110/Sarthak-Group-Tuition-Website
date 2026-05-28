@@ -11,6 +11,7 @@ import {
   Calendar,
   Plane,
   PartyPopper,
+  Trophy,
   X,
   AlertCircle,
   CheckCircle,
@@ -20,7 +21,7 @@ import {
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type GalleryCategory = "BUILDING" | "CLASSROOM" | "EVENTS" | "TRIPS" | "PARTIES";
+type GalleryCategory = "BUILDING" | "CLASSROOM" | "EVENTS" | "TRIPS" | "PARTIES" | "RESULTS";
 
 interface GalleryImage {
   id: string;
@@ -45,6 +46,7 @@ const CATEGORIES: { id: GalleryCategory; label: string; icon: React.ElementType;
   { id: "EVENTS",    label: "Events",    icon: Calendar,     color: "text-purple-600" },
   { id: "TRIPS",     label: "Trips",     icon: Plane,        color: "text-orange-600" },
   { id: "PARTIES",   label: "Parties",   icon: PartyPopper,  color: "text-pink-600"   },
+  { id: "RESULTS",   label: "Results",   icon: Trophy,       color: "text-yellow-600" },
 ];
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -345,13 +347,27 @@ export default function AdminGalleryPage() {
             )}
           </div>
           <div className="sm:col-span-1">
-            <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
-            <input
-              type="date"
-              value={uploadDate}
-              onChange={(e) => setUploadDate(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              {activeCategory === "RESULTS" ? "Year" : "Date"}
+            </label>
+            {activeCategory === "RESULTS" ? (
+              <select
+                value={uploadDate.slice(0, 4)}
+                onChange={(e) => setUploadDate(`${e.target.value}-01-01`)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {Array.from({ length: 2025 - 2002 + 1 }, (_, i) => 2025 - i).map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="date"
+                value={uploadDate}
+                onChange={(e) => setUploadDate(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            )}
           </div>
           <div className="sm:col-span-1">
             <label className="block text-xs font-medium text-gray-600 mb-1">
