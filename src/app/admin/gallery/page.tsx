@@ -99,6 +99,39 @@ export default function AdminGalleryPage() {
     setTimeout(() => setToast(null), 4000);
   }
 
+  // ── Image compression (keeps each file under 3MB for Vercel's 4.5MB limit) ─
+
+  async function compressImage(file: File, maxMB = 2.5): Promise<File> {
+    return new Promise((resolve) => {
+      const maxBytes = maxMB * 1024 * 1024;
+      if (file.size <= maxBytes) { resolve(file); return; }
+
+      const img = document.createElement("img");
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const canvas = document.createElement("canvas");
+        let { width, height } = img;
+        const scale = Math.sqrt(maxBytes / file.size);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) { resolve(file); return; }
+            resolve(new File([blob], file.name, { type: "image/jpeg" }));
+          },
+          "image/jpeg",
+          0.85
+        );
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+  }
+
   // ── File selection ────────────────────────────────────────────────────────
 
   function handleFiles(fileList: FileList | null) {
@@ -137,7 +170,9 @@ export default function AdminGalleryPage() {
     handleFiles(e.dataTransfer.files);
   }
 
-  // ── Upload ────────────────────────────────────────────────────────────────
+  // ── Upload (one file at a time to stay within Vercel's 4.5MB limit) ────────
+
+  const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
 
   async function handleUpload() {
     if (previews.length === 0) {
@@ -146,42 +181,53 @@ export default function AdminGalleryPage() {
     }
 
     setUploading(true);
+    setUploadProgress({ done: 0, total: previews.length });
+    let successCount = 0;
+
     try {
-      const formData = new FormData();
-      previews.forEach((p) => formData.append("files", p.file));
-      formData.append("title", title.trim());
-      formData.append("description", description.trim());
-      formData.append("category", activeCategory);
-      formData.append("date", uploadDate);
+      for (let i = 0; i < previews.length; i++) {
+        const p = previews[i];
+        const compressed = await compressImage(p.file);
 
-      const res = await fetch("/api/gallery/upload", {
-        method: "POST",
-        body: formData,
-      });
+        const formData = new FormData();
+        formData.append("files", compressed);
+        formData.append("title", title.trim() ? (previews.length > 1 ? `${title.trim()} ${i + 1}` : title.trim()) : "");
+        formData.append("description", description.trim());
+        formData.append("category", activeCategory);
+        formData.append("date", uploadDate);
 
-      const data = await res.json();
+        const res = await fetch("/api/gallery/upload", {
+          method: "POST",
+          body: formData,
+        });
 
-      if (!res.ok) {
-        showToast("error", data.error || "Upload failed");
-        return;
+        let data: any = {};
+        const text = await res.text();
+        try { data = JSON.parse(text); } catch { data = { error: text || "Upload failed" }; }
+
+        if (!res.ok) {
+          showToast("error", `Image ${i + 1}: ${data.error || "Upload failed"}`);
+          break;
+        }
+        successCount++;
+        setUploadProgress({ done: i + 1, total: previews.length });
       }
 
-      showToast("success", data.message);
-
-      // Clear form
-      previews.forEach((p) => URL.revokeObjectURL(p.previewUrl));
-      setPreviews([]);
-      setTitle("");
-      setDescription("");
-      setUploadDate(new Date().toISOString().split("T")[0]);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-
-      // Refresh gallery
-      fetchImages(activeCategory);
+      if (successCount > 0) {
+        showToast("success", `${successCount} image${successCount > 1 ? "s" : ""} uploaded successfully`);
+        previews.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+        setPreviews([]);
+        setTitle("");
+        setDescription("");
+        setUploadDate(new Date().toISOString().split("T")[0]);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        fetchImages(activeCategory);
+      }
     } catch (err: any) {
       showToast("error", err?.message || "Upload failed. Please try again.");
     } finally {
       setUploading(false);
+      setUploadProgress({ done: 0, total: 0 });
     }
   }
 
@@ -392,7 +438,9 @@ export default function AdminGalleryPage() {
             {uploading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Uploading {previews.length} image{previews.length > 1 ? "s" : ""}…
+                {uploadProgress.total > 1
+                  ? `Uploading ${uploadProgress.done + 1} of ${uploadProgress.total}…`
+                  : "Uploading…"}
               </>
             ) : (
               <>
