@@ -407,6 +407,7 @@ enum GalleryCategory {
   EVENTS
   TRIPS
   PARTIES
+  RESULTS
 }
 
 // ==================== CONTACT MESSAGES ====================

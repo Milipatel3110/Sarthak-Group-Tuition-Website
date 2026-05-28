@@ -8,7 +8,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 })
 
-const VALID_CATEGORIES = ['BUILDING', 'CLASSROOM', 'EVENTS', 'TRIPS', 'PARTIES'] as const
+const VALID_CATEGORIES = ['BUILDING', 'CLASSROOM', 'EVENTS', 'TRIPS', 'PARTIES', 'RESULTS'] as const
 type GalleryCategory = typeof VALID_CATEGORIES[number]
 
 export async function POST(request: NextRequest) {

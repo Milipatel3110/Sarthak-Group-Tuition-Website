@@ -178,8 +178,8 @@ export default function AdminGalleryPage() {
 
       // Refresh gallery
       fetchImages(activeCategory);
-    } catch {
-      showToast("error", "Upload failed. Please try again.");
+    } catch (err: any) {
+      showToast("error", err?.message || "Upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
