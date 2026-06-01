@@ -37,10 +37,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // facultyId from the UI is a User.id — resolve to FacultyProfile.id
+    let resolvedFacultyId: string | null = null
+    if (facultyId) {
+      const fp = await prisma.facultyProfile.findUnique({ where: { userId: facultyId }, select: { id: true } })
+      resolvedFacultyId = fp?.id ?? null
+    }
+
     const exam = await prisma.exam.create({
       data: {
         batchId,
-        facultyId: facultyId || null,
+        facultyId: resolvedFacultyId,
         subject,
         date: new Date(date),
         dayOfWeek,
@@ -63,11 +70,8 @@ export async function POST(request: NextRequest) {
     })
     students.forEach(s => userIdSet.add(s.userId))
 
-    // Assigned faculty (always notify them to upload paper)
-    if (facultyId) {
-      const fp = await prisma.facultyProfile.findUnique({ where: { id: facultyId }, select: { userId: true } })
-      if (fp) userIdSet.add(fp.userId)
-    }
+    // Assigned faculty — notify them directly (we have their userId from form)
+    if (facultyId) userIdSet.add(facultyId)
 
     // All faculty with timetable entries for this batch
     const timetableEntries = await prisma.timetable.findMany({
@@ -105,11 +109,22 @@ export async function PUT(request: NextRequest) {
 
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 })
 
+    // Resolve User.id → FacultyProfile.id if provided
+    let resolvedFacultyId: string | null | undefined = undefined
+    if (facultyId !== undefined) {
+      if (facultyId) {
+        const fp = await prisma.facultyProfile.findUnique({ where: { userId: facultyId }, select: { id: true } })
+        resolvedFacultyId = fp?.id ?? null
+      } else {
+        resolvedFacultyId = null
+      }
+    }
+
     const exam = await prisma.exam.update({
       where: { id },
       data: {
         ...(batchId !== undefined && { batchId }),
-        ...(facultyId !== undefined && { facultyId: facultyId || null }),
+        ...(resolvedFacultyId !== undefined && { facultyId: resolvedFacultyId }),
         ...(subject !== undefined && { subject }),
         ...(date !== undefined && { date: new Date(date) }),
         ...(dayOfWeek !== undefined && { dayOfWeek }),
