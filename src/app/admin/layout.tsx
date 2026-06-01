@@ -15,6 +15,7 @@ import {
   Users,
   Images,
   Clock,
+  FileText,
   LogOut,
   Loader2,
 } from "lucide-react";
@@ -42,6 +43,7 @@ const navItems = [
   { label: "Faculty",       href: "/admin/faculty",       icon: Users           },
   { label: "Gallery",       href: "/admin/gallery",       icon: Images          },
   { label: "Timetable",    href: "/admin/timetable",    icon: Clock           },
+  { label: "Exams",       href: "/admin/exams",        icon: FileText        },
 ];
 
 // ── Sidebar ────────────────────────────────────────────────────────────────

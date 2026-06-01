@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   GraduationCap, BookOpen, Calendar, FileText, TrendingUp,
   Bell, LogOut, CheckCircle, Download, Home, Menu,
   AlertTriangle, Pin, Wallet, X, ChevronDown, ChevronRight,
-  Play, File, Video, Clock
+  Play, File, Video, Clock, ClipboardList
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -20,6 +20,8 @@ interface Announcement { id: string; title: string; content: string; isPinned: b
 interface FeePayment { id: string; amountPaid: number; paymentDate: string; status: string; feeStructure: { amount: number; course: { name: string } } }
 interface Material { id: string; title: string; description: string | null; fileUrl: string; fileType: string; createdAt: string }
 interface VideoLecture { id: string; title: string; description: string | null; videoUrl: string; duration: number | null; topic: string | null }
+interface Notification { id: string; title: string; message: string; isRead: boolean; createdAt: string }
+interface Exam { id: string; subject: string; date: string; time: string; room: string | null; maxMarks: number; syllabus: string | null; batchId: string }
 
 // ── Toast ──────────────────────────────────────────────────────────────────────
 function Toast({ msg, onClose }: { msg: string; onClose: () => void }) {
@@ -35,6 +37,18 @@ function Toast({ msg, onClose }: { msg: string; onClose: () => void }) {
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function Skeleton({ className = '' }: { className?: string }) {
   return <div className={`animate-pulse bg-gray-200 rounded ${className}`} />
+}
+
+// ── Time ago helper ───────────────────────────────────────────────────────────
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  return `${days}d ago`
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -57,6 +71,17 @@ export default function StudentPortal() {
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null)
   const [timetable, setTimetable] = useState<{ id: string; subject: string; dayOfWeek: string; startTime: string; endTime: string; room: string | null; faculty: { user: { firstName: string; lastName: string } } }[]>([])
 
+  // Notifications state
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [notifLoading, setNotifLoading] = useState(false)
+  const notifRef = useRef<HTMLDivElement>(null)
+
+  // Exams state
+  const [exams, setExams] = useState<Exam[]>([])
+  const [examsLoading, setExamsLoading] = useState(false)
+  const [examsError, setExamsError] = useState('')
+
   // Loading state
   const [loading, setLoading] = useState(true)
   const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'pending' | 'submitted' | 'graded'>('all')
@@ -69,6 +94,32 @@ export default function StudentPortal() {
     if (u.role !== 'STUDENT') { router.push('/portal/login'); return }
     setUser(u)
   }, [router])
+
+  // Fetch notifications on mount when user is set
+  useEffect(() => {
+    if (!user) return
+    const fetchNotifications = async () => {
+      setNotifLoading(true)
+      try {
+        const res = await fetch(`/api/notifications?userId=${user.id}`)
+        const data = await res.json()
+        if (data.success) setNotifications(data.notifications || [])
+      } catch (e) { console.error(e) }
+      finally { setNotifLoading(false) }
+    }
+    fetchNotifications()
+  }, [user])
+
+  // Close notification dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   // Fetch data once user is set
   useEffect(() => {
@@ -109,6 +160,34 @@ export default function StudentPortal() {
     fetchAll()
   }, [user])
 
+  // Fetch exams when Exams tab is active
+  useEffect(() => {
+    if (activeTab !== 'exams' || !user) return
+    const batchId = (user as any)?.studentProfile?.batchId
+    if (!batchId) return
+    const fetchExams = async () => {
+      setExamsLoading(true)
+      setExamsError('')
+      try {
+        const res = await fetch(`/api/admin/exams?batchId=${batchId}`)
+        const data = await res.json()
+        if (data.success) {
+          const sorted = (data.exams || []).sort((a: Exam, b: Exam) =>
+            new Date(a.date).getTime() - new Date(b.date).getTime()
+          )
+          setExams(sorted)
+        } else {
+          setExamsError('Failed to load exams.')
+        }
+      } catch (e) {
+        setExamsError('Error loading exams.')
+        console.error(e)
+      }
+      finally { setExamsLoading(false) }
+    }
+    fetchExams()
+  }, [activeTab, user])
+
   const fetchCourseContent = async (courseId: string) => {
     if (materials[courseId] !== undefined) return
     try {
@@ -127,6 +206,33 @@ export default function StudentPortal() {
     setExpandedCourse(courseId)
     fetchCourseContent(courseId)
   }
+
+  // Mark single notification as read
+  const markNotifRead = async (id: string) => {
+    try {
+      await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
+    } catch (e) { console.error(e) }
+  }
+
+  // Mark all notifications as read
+  const markAllNotifRead = async () => {
+    if (!user) return
+    try {
+      await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      })
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+    } catch (e) { console.error(e) }
+  }
+
+  const unreadCount = notifications.filter(n => !n.isRead).length
 
   // Computed stats
   const presentCount = attendance.filter(a => a.status === 'PRESENT').length
@@ -160,6 +266,7 @@ export default function StudentPortal() {
     { id: 'announcements', icon: Bell, label: 'Announcements' },
     { id: 'fees', icon: Wallet, label: 'Fee Status' },
     { id: 'timetable', icon: Clock, label: 'Timetable' },
+    { id: 'exams', icon: ClipboardList, label: 'Exams' },
   ]
 
   const handleLogout = () => {
@@ -644,6 +751,72 @@ export default function StudentPortal() {
         )
       }
 
+      // ── Exams ─────────────────────────────────────────────────────────────
+      case 'exams': {
+        const batchId = (user as any)?.studentProfile?.batchId
+        if (!batchId) return (
+          <div className="bg-white rounded-xl p-10 text-center shadow-sm">
+            <ClipboardList className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">No batch assigned. Contact admin.</p>
+          </div>
+        )
+        if (examsLoading) return (
+          <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-28 w-full" />)}</div>
+        )
+        if (examsError) return (
+          <div className="bg-white rounded-xl p-10 text-center shadow-sm">
+            <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-3" />
+            <p className="text-red-500">{examsError}</p>
+          </div>
+        )
+        return (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">Upcoming Exams</h2>
+            {exams.length === 0 ? (
+              <div className="bg-white rounded-xl p-10 text-center shadow-sm">
+                <ClipboardList className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">No upcoming exams.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {exams.map(exam => (
+                  <div key={exam.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <h3 className="font-semibold text-gray-900 text-base">{exam.subject}</h3>
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full shrink-0 ml-2">
+                        {new Date(exam.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex items-center gap-1.5 text-gray-600">
+                        <Clock className="h-3.5 w-3.5 text-gray-400" />
+                        <span>{exam.time || '—'}</span>
+                      </div>
+                      {exam.room && (
+                        <div className="flex items-center gap-1.5 text-gray-600">
+                          <span className="text-gray-400 text-xs font-medium">Room</span>
+                          <span>{exam.room}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5 text-gray-600">
+                        <span className="text-gray-400 text-xs font-medium">Max Marks</span>
+                        <span className="font-semibold text-gray-800">{exam.maxMarks}</span>
+                      </div>
+                    </div>
+                    {exam.syllabus && (
+                      <div className="border-t pt-2">
+                        <p className="text-xs text-gray-500 font-medium mb-1">Syllabus</p>
+                        <p className="text-sm text-gray-700">{exam.syllabus}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      }
+
       default: return null
     }
   }
@@ -688,6 +861,63 @@ export default function StudentPortal() {
             <Menu className="h-5 w-5 text-gray-600" />
           </button>
           <div className="flex items-center gap-3">
+            {/* Notification Bell */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setNotifOpen(o => !o)}
+                className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Notifications"
+              >
+                <Bell className="h-5 w-5 text-gray-600" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification dropdown */}
+              {notifOpen && (
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b">
+                    <h3 className="font-semibold text-gray-900 text-sm">Notifications</h3>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllNotifRead}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifLoading ? (
+                      <div className="p-4 space-y-3">
+                        {[1,2,3].map(i => <Skeleton key={i} className="h-14 w-full" />)}
+                      </div>
+                    ) : notifications.length === 0 ? (
+                      <div className="p-6 text-center text-gray-400 text-sm">No notifications yet.</div>
+                    ) : (
+                      notifications.map(n => (
+                        <button
+                          key={n.id}
+                          onClick={() => markNotifRead(n.id)}
+                          className={`w-full text-left px-4 py-3 border-b last:border-0 hover:bg-gray-50 transition-colors flex items-start gap-3 ${!n.isRead ? 'bg-blue-50' : ''}`}
+                        >
+                          <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${!n.isRead ? 'bg-blue-500' : 'bg-gray-300'}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-medium text-gray-900 truncate ${!n.isRead ? 'font-semibold' : ''}`}>{n.title}</p>
+                            <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{n.message}</p>
+                            <p className="text-xs text-gray-400 mt-1">{timeAgo(n.createdAt)}</p>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
               <span className="text-blue-700 font-semibold text-sm">{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
             </div>

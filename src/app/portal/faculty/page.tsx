@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   GraduationCap, BookOpen, Calendar, FileText, Users,
   Bell, LogOut, CheckCircle, Upload, BarChart3, Video,
   Home, Plus, Edit, X, TrendingUp, FolderOpen, Menu,
-  Save, AlertTriangle, Clock
+  Save, AlertTriangle, Clock, ClipboardList
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -20,6 +20,13 @@ interface Enrollment { id: string; student: { id: string; user: { firstName: str
 interface ScheduleEntry { id: string; dayOfWeek: string; startTime: string; endTime: string; subject: string; roomNumber: string | null; course: { name: string } }
 interface Announcement { id: string; title: string; content: string; isPinned: boolean; targetRole: string; createdAt: string }
 interface Material { id: string; title: string; description: string | null; fileUrl: string; fileType: string; course: { name: string }; createdAt: string }
+interface Notification { id: string; title: string; message: string; isRead: boolean; createdAt: string }
+interface Exam {
+  id: string; subject: string; date: string; time: string; room: string | null
+  maxMarks: number; syllabus: string | null; batchId: string
+  batch?: { name: string; standard: string; medium: string }
+}
+interface ExamPaper { id: string; fileUrl: string; fileName: string; facultyId: string; createdAt: string }
 
 // ── Toast ──────────────────────────────────────────────────────────────────────
 function Toast({ msg, type = 'success', onClose }: { msg: string; type?: 'success' | 'error'; onClose: () => void }) {
@@ -50,6 +57,18 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
   )
 }
 
+// ── Time ago helper ───────────────────────────────────────────────────────────
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  return `${days}d ago`
+}
+
 export default function FacultyPortal() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
@@ -67,6 +86,20 @@ export default function FacultyPortal() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [materials, setMaterials] = useState<Material[]>([])
   const [facultyTimetable, setFacultyTimetable] = useState<{ id: string; subject: string; dayOfWeek: string; startTime: string; endTime: string; room: string | null; batch?: { name: string; standard: string; medium: string }; faculty: { user: { firstName: string; lastName: string } } }[]>([])
+
+  // Notifications state
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [notifLoading, setNotifLoading] = useState(false)
+  const notifRef = useRef<HTMLDivElement>(null)
+
+  // Exams & Papers state
+  const [exams, setExams] = useState<Exam[]>([])
+  const [examsLoading, setExamsLoading] = useState(false)
+  const [examPapers, setExamPapers] = useState<Record<string, ExamPaper[]>>({})
+  const [paperUploading, setPaperUploading] = useState<Record<string, boolean>>({})
+  const [paperMsg, setPaperMsg] = useState<Record<string, { text: string; ok: boolean }>>({})
+  const [paperFiles, setPaperFiles] = useState<Record<string, File | null>>({})
 
   // Attendance
   const [attCourseId, setAttCourseId] = useState('')
@@ -106,6 +139,32 @@ export default function FacultyPortal() {
     setFacultyId(u.facultyProfile?.id || null)
   }, [router])
 
+  // Fetch notifications on mount when user is set
+  useEffect(() => {
+    if (!user) return
+    const fetchNotifications = async () => {
+      setNotifLoading(true)
+      try {
+        const res = await fetch(`/api/notifications?userId=${user.id}`)
+        const data = await res.json()
+        if (data.success) setNotifications(data.notifications || [])
+      } catch (e) { console.error(e) }
+      finally { setNotifLoading(false) }
+    }
+    fetchNotifications()
+  }, [user])
+
+  // Close notification dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
   // Fetch data
   useEffect(() => {
     if (!facultyId) { setLoading(false); return }
@@ -136,6 +195,65 @@ export default function FacultyPortal() {
     }
     fetch1()
   }, [facultyId])
+
+  // Fetch exams when Exams & Papers tab is active
+  useEffect(() => {
+    if (activeTab !== 'exams') return
+    const fetchExams = async () => {
+      setExamsLoading(true)
+      try {
+        const res = await fetch('/api/admin/exams')
+        const data = await res.json()
+        if (data.success) {
+          const sorted = (data.exams || []).sort((a: Exam, b: Exam) =>
+            new Date(a.date).getTime() - new Date(b.date).getTime()
+          )
+          setExams(sorted)
+          // Fetch papers for each exam
+          sorted.forEach((exam: Exam) => {
+            fetchExamPapers(exam.id)
+          })
+        }
+      } catch (e) { console.error(e) }
+      finally { setExamsLoading(false) }
+    }
+    fetchExams()
+  }, [activeTab])
+
+  const fetchExamPapers = async (examId: string) => {
+    try {
+      const res = await fetch(`/api/admin/exams/paper?examId=${examId}`)
+      const data = await res.json()
+      if (data.success) {
+        setExamPapers(prev => ({ ...prev, [examId]: data.papers || [] }))
+      }
+    } catch (e) { console.error(e) }
+  }
+
+  const uploadPaper = async (examId: string) => {
+    const file = paperFiles[examId]
+    if (!file || !facultyId) return
+    setPaperUploading(prev => ({ ...prev, [examId]: true }))
+    setPaperMsg(prev => ({ ...prev, [examId]: { text: '', ok: true } }))
+    try {
+      const formData = new FormData()
+      formData.append('files', file)
+      formData.append('examId', examId)
+      formData.append('facultyId', facultyId)
+      const res = await fetch('/api/admin/exams/paper', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        setPaperMsg(prev => ({ ...prev, [examId]: { text: 'Paper uploaded successfully!', ok: true } }))
+        setPaperFiles(prev => ({ ...prev, [examId]: null }))
+        fetchExamPapers(examId)
+      } else {
+        setPaperMsg(prev => ({ ...prev, [examId]: { text: data.error || 'Upload failed.', ok: false } }))
+      }
+    } catch (e) {
+      setPaperMsg(prev => ({ ...prev, [examId]: { text: 'Error uploading paper.', ok: false } }))
+    }
+    finally { setPaperUploading(prev => ({ ...prev, [examId]: false })) }
+  }
 
   // Load attendance students
   useEffect(() => {
@@ -178,6 +296,33 @@ export default function FacultyPortal() {
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast(msg); setToastType(type)
   }
+
+  // Mark single notification as read
+  const markNotifRead = async (id: string) => {
+    try {
+      await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
+    } catch (e) { console.error(e) }
+  }
+
+  // Mark all notifications as read
+  const markAllNotifRead = async () => {
+    if (!user) return
+    try {
+      await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      })
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+    } catch (e) { console.error(e) }
+  }
+
+  const unreadCount = notifications.filter(n => !n.isRead).length
 
   const submitAttendance = async () => {
     if (!attCourseId || enrollments.length === 0) return
@@ -290,6 +435,7 @@ export default function FacultyPortal() {
     { id: 'schedule', icon: Calendar, label: 'Schedule' },
     { id: 'announcements', icon: Bell, label: 'Announcements' },
     { id: 'timetable', icon: Clock, label: 'My Timetable' },
+    { id: 'exams', icon: ClipboardList, label: 'Exams & Papers' },
   ]
 
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -702,6 +848,130 @@ export default function FacultyPortal() {
         )
       }
 
+      // ── Exams & Papers ────────────────────────────────────────────────────
+      case 'exams': {
+        if (examsLoading) return (
+          <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-40 w-full" />)}</div>
+        )
+
+        // Group exams by batchId
+        const batchGroups: Record<string, Exam[]> = {}
+        exams.forEach(exam => {
+          const key = exam.batchId || 'unknown'
+          if (!batchGroups[key]) batchGroups[key] = []
+          batchGroups[key].push(exam)
+        })
+
+        return (
+          <div className="space-y-6">
+            <h2 className="text-lg font-semibold text-gray-900">Exams &amp; Papers</h2>
+            {exams.length === 0 && (
+              <div className="bg-white rounded-xl p-10 text-center shadow-sm">
+                <ClipboardList className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">No exams found.</p>
+              </div>
+            )}
+            {Object.entries(batchGroups).map(([batchId, batchExams]) => {
+              const batchLabel = batchExams[0]?.batch
+                ? `${batchExams[0].batch.standard} — ${batchExams[0].batch.name} (${batchExams[0].batch.medium})`
+                : `Batch: ${batchId}`
+              return (
+                <div key={batchId} className="space-y-3">
+                  <h3 className="font-semibold text-gray-700 text-sm px-1">{batchLabel}</h3>
+                  {batchExams.map(exam => {
+                    const myPapers = (examPapers[exam.id] || []).filter(p => p.facultyId === facultyId)
+                    const isUploading = !!paperUploading[exam.id]
+                    const msg = paperMsg[exam.id]
+                    const selectedFile = paperFiles[exam.id]
+                    return (
+                      <div key={exam.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">
+                        {/* Exam info */}
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="space-y-1">
+                            <h4 className="font-semibold text-gray-900">{exam.subject}</h4>
+                            <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                                {new Date(exam.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </span>
+                              {exam.time && (
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3.5 w-3.5 text-gray-400" />
+                                  {exam.time}
+                                </span>
+                              )}
+                              {exam.room && (
+                                <span className="text-gray-500">Room: {exam.room}</span>
+                              )}
+                              <span className="font-medium text-gray-700">Max Marks: {exam.maxMarks}</span>
+                            </div>
+                            {exam.syllabus && (
+                              <p className="text-xs text-gray-500 mt-1">Syllabus: {exam.syllabus}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Upload Paper section */}
+                        <div className="border-t pt-4">
+                          <p className="text-sm font-medium text-gray-700 mb-2">Upload Question Paper</p>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <label className="flex items-center gap-2 cursor-pointer border border-dashed border-gray-300 rounded-lg px-4 py-2 hover:border-green-400 hover:bg-green-50 transition-colors text-sm text-gray-600">
+                              <Upload className="h-4 w-4 text-gray-400" />
+                              <span>{selectedFile ? selectedFile.name : 'Choose file'}</span>
+                              <input
+                                type="file"
+                                accept=".pdf,.doc,.docx,.jpg,.png"
+                                className="hidden"
+                                onChange={e => {
+                                  const f = e.target.files?.[0] || null
+                                  setPaperFiles(prev => ({ ...prev, [exam.id]: f }))
+                                  setPaperMsg(prev => ({ ...prev, [exam.id]: { text: '', ok: true } }))
+                                }}
+                              />
+                            </label>
+                            <button
+                              onClick={() => uploadPaper(exam.id)}
+                              disabled={!selectedFile || isUploading}
+                              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm flex items-center gap-2 transition-colors"
+                            >
+                              <Upload className="h-4 w-4" />
+                              {isUploading ? 'Uploading...' : 'Upload'}
+                            </button>
+                          </div>
+                          {msg?.text && (
+                            <p className={`mt-2 text-xs font-medium ${msg.ok ? 'text-green-600' : 'text-red-500'}`}>
+                              {msg.text}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* My uploaded papers */}
+                        {myPapers.length > 0 && (
+                          <div className="border-t pt-3">
+                            <p className="text-xs font-medium text-gray-500 mb-2">Your Uploaded Papers</p>
+                            <div className="space-y-1.5">
+                              {myPapers.map(paper => (
+                                <div key={paper.id} className="flex items-center justify-between p-2 bg-green-50 rounded-lg">
+                                  <div className="flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+                                    <span className="text-xs text-gray-700 truncate max-w-[200px]">{paper.fileName || 'Paper'}</span>
+                                  </div>
+                                  <span className="text-xs text-gray-400 shrink-0">{timeAgo(paper.createdAt)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
+        )
+      }
+
       default: return null
     }
   }
@@ -870,6 +1140,63 @@ export default function FacultyPortal() {
             <Menu className="h-5 w-5 text-gray-600" />
           </button>
           <div className="flex items-center gap-3">
+            {/* Notification Bell */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setNotifOpen(o => !o)}
+                className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Notifications"
+              >
+                <Bell className="h-5 w-5 text-gray-600" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification dropdown */}
+              {notifOpen && (
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b">
+                    <h3 className="font-semibold text-gray-900 text-sm">Notifications</h3>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllNotifRead}
+                        className="text-xs text-green-600 hover:text-green-800 font-medium"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifLoading ? (
+                      <div className="p-4 space-y-3">
+                        {[1,2,3].map(i => <Skeleton key={i} className="h-14 w-full" />)}
+                      </div>
+                    ) : notifications.length === 0 ? (
+                      <div className="p-6 text-center text-gray-400 text-sm">No notifications yet.</div>
+                    ) : (
+                      notifications.map(n => (
+                        <button
+                          key={n.id}
+                          onClick={() => markNotifRead(n.id)}
+                          className={`w-full text-left px-4 py-3 border-b last:border-0 hover:bg-gray-50 transition-colors flex items-start gap-3 ${!n.isRead ? 'bg-green-50' : ''}`}
+                        >
+                          <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${!n.isRead ? 'bg-green-500' : 'bg-gray-300'}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm text-gray-900 truncate ${!n.isRead ? 'font-semibold' : 'font-medium'}`}>{n.title}</p>
+                            <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{n.message}</p>
+                            <p className="text-xs text-gray-400 mt-1">{timeAgo(n.createdAt)}</p>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center">
               <span className="text-green-700 font-semibold text-sm">{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
             </div>

@@ -30,6 +30,7 @@ model User {
   parentProfile    ParentProfile?
   facultyProfile   FacultyProfile?
   chatMessages     ChatMessage[]
+  notifications    Notification[]
 }
 
 enum Role {
@@ -53,6 +54,7 @@ model Batch {
 
   students   StudentProfile[]
   timetables Timetable[]
+  exams      Exam[]
 }
 
 // ==================== STUDENT PROFILE ====================
@@ -135,6 +137,7 @@ model FacultyProfile {
   videoLectures   VideoLecture[]
   courseMaterials CourseMaterial[]
   timetables      Timetable[]
+  examPapers      ExamPaper[]
 }
 
 // ==================== COURSE MODELS ====================
@@ -255,18 +258,20 @@ enum AttendanceStatus {
 
 model Grade {
   id          String    @id @default(cuid())
-  studentId    String
+  studentId   String
   courseId    String
+  examId      String?
   examName    String
   marks       Float
   maxMarks    Float     @default(100)
-  grade       String?   // e.g., "A", "B+", "85%"
+  grade       String?
   remarks     String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  course      Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  exam    Exam?          @relation(fields: [examId], references: [id])
 }
 
 // ==================== FEE MODELS ====================
@@ -510,6 +515,55 @@ model ChatMessage {
   user     User?          @relation(fields: [userId], references: [id])
   faculty FacultyProfile? @relation(fields: [facultyId], references: [id])
   facultyId String?
+}
+
+// ==================== EXAMS ====================
+
+model Exam {
+  id         String   @id @default(cuid())
+  batchId    String
+  subject    String
+  date       DateTime
+  dayOfWeek  String
+  time       String   // "10:00"
+  room       String?
+  maxMarks   Int      @default(100)
+  syllabus   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  batch         Batch          @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  grades        Grade[]
+  examPapers    ExamPaper[]
+  notifications Notification[]
+}
+
+model ExamPaper {
+  id        String   @id @default(cuid())
+  examId    String
+  facultyId String
+  fileUrl   String
+  fileName  String
+  createdAt DateTime @default(now())
+
+  exam    Exam           @relation(fields: [examId], references: [id], onDelete: Cascade)
+  faculty FacultyProfile @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+}
+
+// ==================== NOTIFICATIONS ====================
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // "EXAM", "ANNOUNCEMENT", "GENERAL"
+  title     String
+  message   String
+  examId    String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam Exam? @relation(fields: [examId], references: [id])
 }
 
 // ==================== ENROLLMENT REQUESTS ====================
