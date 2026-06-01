@@ -6,7 +6,7 @@ import {
   GraduationCap, BookOpen, Calendar, FileText, TrendingUp,
   Bell, LogOut, CheckCircle, Download, Home, Menu,
   AlertTriangle, Pin, Wallet, X, ChevronDown, ChevronRight,
-  Play, File, Video
+  Play, File, Video, Clock
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -55,6 +55,7 @@ export default function StudentPortal() {
   const [materials, setMaterials] = useState<Record<string, Material[]>>({})
   const [videos, setVideos] = useState<Record<string, VideoLecture[]>>({})
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null)
+  const [timetable, setTimetable] = useState<{ id: string; subject: string; dayOfWeek: string; startTime: string; endTime: string; room: string | null; faculty: { user: { firstName: string; lastName: string } } }[]>([])
 
   // Loading state
   const [loading, setLoading] = useState(true)
@@ -95,6 +96,13 @@ export default function StudentPortal() {
         if (grdData.success) setGrades(grdData.grades || [])
         if (annData.success) setAnnouncements(annData.announcements || [])
         if (feeData.success) setFees(feeData.payments || [])
+        // Fetch timetable if batchId is available
+        const batchId = (user as any)?.studentProfile?.batchId
+        if (batchId) {
+          const ttRes = await fetch(`/api/timetable?batchId=${batchId}`)
+          const ttData = await ttRes.json()
+          if (ttData.success) setTimetable(ttData.timetable || [])
+        }
       } catch (e) { console.error(e) }
       finally { setLoading(false) }
     }
@@ -151,6 +159,7 @@ export default function StudentPortal() {
     { id: 'grades', icon: TrendingUp, label: 'Grades' },
     { id: 'announcements', icon: Bell, label: 'Announcements' },
     { id: 'fees', icon: Wallet, label: 'Fee Status' },
+    { id: 'timetable', icon: Clock, label: 'Timetable' },
   ]
 
   const handleLogout = () => {
@@ -583,6 +592,57 @@ export default function StudentPortal() {
             </div>
           </div>
         )
+
+      // ── Timetable ─────────────────────────────────────────────────────────
+      case 'timetable': {
+        const fmt12 = (t: string) => { const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${m.toString().padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}` }
+        const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        const batchId = (user as any)?.studentProfile?.batchId
+        if (!batchId) return (
+          <div className="bg-white rounded-xl p-10 text-center shadow-sm">
+            <Clock className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">No batch assigned yet. Contact admin.</p>
+          </div>
+        )
+        if (timetable.length === 0) return (
+          <div className="bg-white rounded-xl p-10 text-center shadow-sm">
+            <Clock className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">No timetable yet for your batch.</p>
+          </div>
+        )
+        return (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">Weekly Timetable</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {DAYS.map(day => {
+                const dayItems = timetable
+                  .filter(e => e.dayOfWeek === day)
+                  .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                return (
+                  <div key={day} className="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div className="px-4 py-3 bg-blue-50 border-b">
+                      <h3 className="font-semibold text-blue-800 text-sm">{day}</h3>
+                    </div>
+                    <div className="p-3 space-y-2">
+                      {dayItems.length === 0
+                        ? <p className="text-xs text-gray-400 py-2 text-center">No classes</p>
+                        : dayItems.map(e => (
+                          <div key={e.id} className="border rounded-lg p-3">
+                            <p className="text-xs text-gray-500">{fmt12(e.startTime)} – {fmt12(e.endTime)}</p>
+                            <p className="font-semibold text-gray-900 text-sm mt-0.5">{e.subject}</p>
+                            <p className="text-xs text-gray-500">by {e.faculty?.user?.firstName} {e.faculty?.user?.lastName}</p>
+                            {e.room && <p className="text-xs text-gray-400 mt-0.5">Room {e.room}</p>}
+                          </div>
+                        ))
+                      }
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      }
 
       default: return null
     }

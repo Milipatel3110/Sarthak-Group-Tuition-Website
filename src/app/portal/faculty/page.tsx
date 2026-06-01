@@ -6,7 +6,7 @@ import {
   GraduationCap, BookOpen, Calendar, FileText, Users,
   Bell, LogOut, CheckCircle, Upload, BarChart3, Video,
   Home, Plus, Edit, X, TrendingUp, FolderOpen, Menu,
-  Save, AlertTriangle
+  Save, AlertTriangle, Clock
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -66,6 +66,7 @@ export default function FacultyPortal() {
   const [schedule, setSchedule] = useState<ScheduleEntry[]>([])
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [materials, setMaterials] = useState<Material[]>([])
+  const [facultyTimetable, setFacultyTimetable] = useState<{ id: string; subject: string; dayOfWeek: string; startTime: string; endTime: string; room: string | null; batch?: { name: string; standard: string; medium: string }; faculty: { user: { firstName: string; lastName: string } } }[]>([])
 
   // Attendance
   const [attCourseId, setAttCourseId] = useState('')
@@ -126,6 +127,10 @@ export default function FacultyPortal() {
         if (schData.success) setSchedule(schData.schedule || [])
         if (annData.success) setAnnouncements(annData.announcements || [])
         if (matData.success) setMaterials(matData.materials || [])
+        // Fetch timetable for this faculty
+        const ttRes = await fetch(`/api/timetable?facultyId=${facultyId}`)
+        const ttData = await ttRes.json()
+        if (ttData.success) setFacultyTimetable(ttData.timetable || [])
       } catch (e) { console.error(e) }
       finally { setLoading(false) }
     }
@@ -284,6 +289,7 @@ export default function FacultyPortal() {
     { id: 'materials', icon: FolderOpen, label: 'Materials' },
     { id: 'schedule', icon: Calendar, label: 'Schedule' },
     { id: 'announcements', icon: Bell, label: 'Announcements' },
+    { id: 'timetable', icon: Clock, label: 'My Timetable' },
   ]
 
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -644,6 +650,57 @@ export default function FacultyPortal() {
             </div>
           </div>
         )
+
+      // ── My Timetable ──────────────────────────────────────────────────────
+      case 'timetable': {
+        const fmt12 = (t: string) => { const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${m.toString().padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}` }
+        const TT_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        return (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">My Weekly Timetable</h2>
+            {facultyTimetable.length === 0 && (
+              <div className="bg-white rounded-xl p-10 text-center shadow-sm">
+                <Clock className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">No timetable entries found.</p>
+              </div>
+            )}
+            {facultyTimetable.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {TT_DAYS.map(day => {
+                  const dayItems = facultyTimetable
+                    .filter(e => e.dayOfWeek === day)
+                    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                  return (
+                    <div key={day} className="bg-white rounded-xl shadow-sm overflow-hidden">
+                      <div className="px-4 py-3 bg-green-50 border-b">
+                        <h3 className="font-semibold text-green-800 text-sm">{day}</h3>
+                      </div>
+                      <div className="p-3 space-y-2">
+                        {dayItems.length === 0
+                          ? <p className="text-xs text-gray-400 py-2 text-center">No classes</p>
+                          : dayItems.map(e => {
+                            const batchLabel = e.batch ? `${e.batch.standard} ${e.batch.name}` : null
+                            return (
+                              <div key={e.id} className="border rounded-lg p-3">
+                                <p className="text-xs text-gray-500">{fmt12(e.startTime)} – {fmt12(e.endTime)}</p>
+                                <p className="font-semibold text-gray-900 text-sm mt-0.5">{e.subject}</p>
+                                {batchLabel && (
+                                  <span className="inline-block mt-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{batchLabel}</span>
+                                )}
+                                {e.room && <p className="text-xs text-gray-400 mt-0.5">Room {e.room}</p>}
+                              </div>
+                            )
+                          })
+                        }
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )
+      }
 
       default: return null
     }

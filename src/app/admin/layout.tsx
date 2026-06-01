@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Users,
   Images,
+  Clock,
   LogOut,
   Loader2,
 } from "lucide-react";
@@ -40,6 +41,7 @@ const navItems = [
   { label: "Messages",      href: "/admin/messages",      icon: MessageSquare   },
   { label: "Faculty",       href: "/admin/faculty",       icon: Users           },
   { label: "Gallery",       href: "/admin/gallery",       icon: Images          },
+  { label: "Timetable",    href: "/admin/timetable",    icon: Clock           },
 ];
 
 // ── Sidebar ────────────────────────────────────────────────────────────────
