@@ -183,7 +183,7 @@ function BatchModal({ batch, onClose, onSuccess, onToast }: BatchModalProps) {
 
 const EMPTY_FORM = {
   firstName: "", lastName: "", dateOfBirth: "", schoolName: "",
-  standard: "", medium: "English", batchId: "", address: "",
+  batchId: "", address: "",
   personalPhone: "", guardian1Phone: "", guardian2Phone: "",
   fatherFirstName: "", fatherLastName: "", fatherOccupation: "",
   motherFirstName: "", motherLastName: "", motherOccupation: "",
@@ -204,7 +204,6 @@ function RegFormModal({ student, batches, onClose, onSuccess, onToast }: RegForm
     ...(student ? {
       firstName: student.firstName, lastName: student.lastName, email: student.email,
       dateOfBirth: sp?.dateOfBirth ?? "", schoolName: sp?.schoolName ?? "",
-      standard: sp?.class ?? "", medium: sp?.medium ?? "English",
       batchId: sp?.batchId ?? "", address: sp?.address ?? "",
       personalPhone: sp?.personalPhone ?? "", guardian1Phone: sp?.guardian1Phone ?? "",
       guardian2Phone: sp?.guardian2Phone ?? "",
@@ -219,7 +218,8 @@ function RegFormModal({ student, batches, onClose, onSuccess, onToast }: RegForm
   const [errors, setErrors] = useState<Partial<Record<keyof typeof EMPTY_FORM, string>>>({});
   const [loading, setLoading] = useState(false);
 
-  const filteredBatches = batches.filter(b => !form.standard || b.standard === form.standard);
+  // Derive standard + medium from selected batch (no need to ask separately)
+  const selectedBatch = batches.find(b => b.id === form.batchId);
 
   function set(key: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -244,8 +244,8 @@ function RegFormModal({ student, batches, onClose, onSuccess, onToast }: RegForm
     try {
       const method = student ? "PUT" : "POST";
       const body = student
-        ? { id: student.id, ...form, feeInstallments }
-        : { ...form, feeInstallments };
+        ? { id: student.id, ...form, standard: selectedBatch?.standard, medium: selectedBatch?.medium, feeInstallments }
+        : { ...form, standard: selectedBatch?.standard, medium: selectedBatch?.medium, feeInstallments };
       const res = await fetch("/api/admin/students", {
         method,
         headers: { "Content-Type": "application/json" },
@@ -263,17 +263,6 @@ function RegFormModal({ student, batches, onClose, onSuccess, onToast }: RegForm
     }
   }
 
-  function Field({ id, label, type = "text", required = false }: { id: keyof typeof EMPTY_FORM; label: string; type?: string; required?: boolean }) {
-    return (
-      <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
-        <input type={type} value={form[id]} onChange={set(id)}
-          className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors[id] ? "border-red-300 bg-red-50" : "border-gray-200"}`} />
-        {errors[id] && <p className="text-xs text-red-500 mt-0.5">{errors[id]}</p>}
-      </div>
-    );
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
@@ -287,37 +276,27 @@ function RegFormModal({ student, batches, onClose, onSuccess, onToast }: RegForm
           <div>
             <SectionHeader title="Personal Information" />
             <div className="grid grid-cols-2 gap-4">
-              <Field id="firstName" label="First Name" required />
-              <Field id="lastName" label="Last Name" required />
-              <Field id="dateOfBirth" label="Date of Birth" type="date" />
-              <Field id="schoolName" label="School Name" />
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Standard</label>
-                <select value={form.standard} onChange={e => setForm(f => ({ ...f, standard: e.target.value, batchId: "" }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">Select class...</option>
-                  {STANDARDS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Medium</label>
-                <select value={form.medium} onChange={set("medium")}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="English">English</option>
-                  <option value="Gujarati">Gujarati</option>
-                </select>
-              </div>
+              <Field label="First Name" value={form.firstName} onChange={set("firstName")} error={errors.firstName} required />
+              <Field label="Last Name" value={form.lastName} onChange={set("lastName")} error={errors.lastName} required />
+              <Field label="Date of Birth" value={form.dateOfBirth} onChange={set("dateOfBirth")} type="date" />
+              <Field label="School Name" value={form.schoolName} onChange={set("schoolName")} />
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Batch</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Batch <span className="text-red-500">*</span></label>
                 <select value={form.batchId} onChange={set("batchId")}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="">Select batch...</option>
-                  {filteredBatches.map(b => <option key={b.id} value={b.id}>{b.name} ({b.standard} – {b.medium})</option>)}
+                  {batches.map(b => <option key={b.id} value={b.id}>{b.name} — {b.standard} ({b.medium})</option>)}
                 </select>
+                {selectedBatch && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    Standard: {selectedBatch.standard} · Medium: {selectedBatch.medium}
+                  </p>
+                )}
               </div>
               <div className="col-span-2">
                 <label className="block text-xs font-medium text-gray-600 mb-1">Address</label>
-                <textarea value={form.address} onChange={set("address")} rows={2} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                <textarea value={form.address} onChange={set("address")} rows={2}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
               </div>
             </div>
           </div>
@@ -326,9 +305,9 @@ function RegFormModal({ student, batches, onClose, onSuccess, onToast }: RegForm
           <div>
             <SectionHeader title="Contact Details" />
             <div className="grid grid-cols-2 gap-4">
-              <Field id="personalPhone" label="Personal Mobile" />
-              <Field id="guardian1Phone" label="Guardian 1 Mobile" required />
-              <Field id="guardian2Phone" label="Guardian 2 Mobile" />
+              <Field label="Personal Mobile" value={form.personalPhone} onChange={set("personalPhone")} />
+              <Field label="Guardian 1 Mobile" value={form.guardian1Phone} onChange={set("guardian1Phone")} error={errors.guardian1Phone} required />
+              <Field label="Guardian 2 Mobile" value={form.guardian2Phone} onChange={set("guardian2Phone")} />
             </div>
           </div>
 
@@ -336,9 +315,11 @@ function RegFormModal({ student, batches, onClose, onSuccess, onToast }: RegForm
           <div>
             <SectionHeader title="Father's Details" />
             <div className="grid grid-cols-2 gap-4">
-              <Field id="fatherFirstName" label="Father First Name" />
-              <Field id="fatherLastName" label="Father Last Name" />
-              <div className="col-span-2"><Field id="fatherOccupation" label="Father's Occupation" /></div>
+              <Field label="Father First Name" value={form.fatherFirstName} onChange={set("fatherFirstName")} />
+              <Field label="Father Last Name" value={form.fatherLastName} onChange={set("fatherLastName")} />
+              <div className="col-span-2">
+                <Field label="Father's Occupation" value={form.fatherOccupation} onChange={set("fatherOccupation")} />
+              </div>
             </div>
           </div>
 
@@ -346,9 +327,11 @@ function RegFormModal({ student, batches, onClose, onSuccess, onToast }: RegForm
           <div>
             <SectionHeader title="Mother's Details" />
             <div className="grid grid-cols-2 gap-4">
-              <Field id="motherFirstName" label="Mother First Name" />
-              <Field id="motherLastName" label="Mother Last Name" />
-              <div className="col-span-2"><Field id="motherOccupation" label="Mother's Occupation" /></div>
+              <Field label="Mother First Name" value={form.motherFirstName} onChange={set("motherFirstName")} />
+              <Field label="Mother Last Name" value={form.motherLastName} onChange={set("motherLastName")} />
+              <div className="col-span-2">
+                <Field label="Mother's Occupation" value={form.motherOccupation} onChange={set("motherOccupation")} />
+              </div>
             </div>
           </div>
 
@@ -356,7 +339,7 @@ function RegFormModal({ student, batches, onClose, onSuccess, onToast }: RegForm
           <div>
             <SectionHeader title="Account (Portal Login)" />
             <div className="grid grid-cols-2 gap-4">
-              <Field id="email" label="Email Address" type="email" required />
+              <Field label="Email Address" value={form.email} onChange={set("email")} type="email" error={errors.email} required />
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   Password{!student && <span className="text-red-500 ml-0.5">*</span>}
@@ -581,6 +564,36 @@ function StudentDetailModal({ student, onClose, onEdit, onDelete, onToast }: Det
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Field must live at module scope — defining it inside a component causes
+// React to remount it on every render, losing input focus after each keystroke.
+function Field({
+  label, value, onChange, error, type = "text", required = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  error?: string;
+  type?: string;
+  required?: boolean;
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 mb-1">
+        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+      </label>
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          error ? "border-red-300 bg-red-50" : "border-gray-200"
+        }`}
+      />
+      {error && <p className="text-xs text-red-500 mt-0.5">{error}</p>}
     </div>
   );
 }
