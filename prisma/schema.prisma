@@ -138,6 +138,7 @@ model FacultyProfile {
   courseMaterials CourseMaterial[]
   timetables      Timetable[]
   examPapers      ExamPaper[]
+  assignedExams   Exam[]
 }
 
 // ==================== COURSE MODELS ====================
@@ -522,20 +523,23 @@ model ChatMessage {
 model Exam {
   id         String   @id @default(cuid())
   batchId    String
+  facultyId  String?
   subject    String
   date       DateTime
   dayOfWeek  String
-  time       String   // "10:00"
+  startTime  String   // "10:00"
+  endTime    String   // "11:00"
   room       String?
   maxMarks   Int      @default(100)
   syllabus   String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  batch         Batch          @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  grades        Grade[]
-  examPapers    ExamPaper[]
-  notifications Notification[]
+  batch           Batch           @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  assignedFaculty FacultyProfile? @relation(fields: [facultyId], references: [id])
+  grades          Grade[]
+  examPapers      ExamPaper[]
+  notifications   Notification[]
 }
 
 model ExamPaper {
