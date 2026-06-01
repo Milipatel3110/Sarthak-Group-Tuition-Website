@@ -573,17 +573,18 @@ model Notification {
 // ==================== ENROLLMENT REQUESTS ====================
 
 model Enrollment {
-  id              String    @id @default(cuid())
-  studentName     String
-  parentName      String
-  email           String
-  phone           String
-  class           String
-  medium          String
-  course          String
-  status          EnrollmentRequestStatus @default(PENDING)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id          String                  @id @default(cuid())
+  studentName String
+  parentName  String
+  email       String
+  phone       String
+  class       String
+  medium      String
+  course      String
+  status      EnrollmentRequestStatus @default(PENDING)
+  comments    String?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
 }
 
 enum EnrollmentRequestStatus {
