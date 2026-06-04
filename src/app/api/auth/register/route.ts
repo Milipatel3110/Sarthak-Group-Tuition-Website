@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { prisma } from "@/lib/prisma";
 
 // ✅ Force Node.js runtime (Prisma + bcrypt need Node runtime)
 export const runtime = "nodejs";
-
-const prisma = new PrismaClient();
 
 // ✅ Prisma payload type for users with profiles included
 type UserWithProfiles = Prisma.UserGetPayload<{
